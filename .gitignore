@@ -174,3 +174,4 @@ rl-venv/
 *.alp
 
 log_ge.txt
+history*

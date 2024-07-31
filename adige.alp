@@ -23,33 +23,12 @@ import org.json.simple.parser.JSONParser;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;]]></Import>
-			<StartupCode><![CDATA[//CREATE HUMAN RESOURCES
-// mechanical resources
-for(int i=0; i<totalAvailableM; i++){
-	Resource r = new Resource();
-	r.resourceType = "M";
-	r.assignedOrderId = -1;
-	r.markParametersAreSet();
-	src_resource.take(r);
-} 
-// electrical resources
-for(int i=0; i<totalAvailableE; i++){
-	Resource r = new Resource();
-	r.resourceType = "E";
-	r.assignedOrderId = -1;
-	r.markParametersAreSet();
-	src_resource.take(r);
-} 
-// repair resources
-for(int i=0; i<totalAvailableR; i++){
-	Resource r = new Resource();
-	r.resourceType = "R";
-	r.assignedOrderId = -1;
-	r.markParametersAreSet();
-	src_resource.take(r);
-}
-//PIAZZOLE INITIALIZATION
+import java.text.SimpleDateFormat;
+import com.opencsv.CSVReader;
+import com.opencsv.exceptions.CsvException;
+import java.io.FileReader;]]></Import>
+			<Implements><![CDATA[ALPypeOptClientController]]></Implements>
+			<StartupCode><![CDATA[//PIAZZOLE INITIALIZATION
 // A1
 Piazzola a1 = new Piazzola("A1", a1_matricola, a1_obiettivo_int, a1_prev_fine, a1_spedizione, a1_day, a1_resources, a1_bar, a1_rectangle, a1_basement_flag, a1_electrical_panel_flag);
 piazzole.put("A1", a1);
@@ -128,7 +107,140 @@ piazzole.put("E3", e3);
 
 // E4
 Piazzola e4 = new Piazzola("E4", e4_matricola, e4_obiettivo_int, e4_prev_fine, e4_spedizione, e4_day, e4_resources, e4_bar, e4_rectangle, e4_basement_flag, e4_electrical_panel_flag);
-piazzole.put("E4", e4);]]></StartupCode>
+piazzole.put("E4", e4);
+
+if(connectToOpt==true){
+	traceln("Optimization");
+	// set run counter
+	runCounterText.setText(getEngine().getRunCount()-1);
+	
+	// check if connected to ALPypeOpt and if so, collect setup parameters
+	if (!alPypeOptConnector.isConnected()) {
+		alPypeOptConnector.setModelConfig(adigeSetup);
+	}
+}else{
+	//CREATE HUMAN RESOURCES
+	// mechanical resources
+	for(int i=0; i<totalAvailableM; i++){
+		Resource r = new Resource();
+		r.resourceType = "M";
+		r.assignedOrderId = -1;
+		r.markParametersAreSet();
+		src_resource.take(r);
+	} 
+	// electrical resources
+	for(int i=0; i<totalAvailableE; i++){
+		Resource r = new Resource();
+		r.resourceType = "E";
+		r.assignedOrderId = -1;
+		r.markParametersAreSet();
+		src_resource.take(r);
+	} 
+	// repair resources
+	for(int i=0; i<totalAvailableR; i++){
+		Resource r = new Resource();
+		r.resourceType = "R";
+		r.assignedOrderId = -1;
+		r.markParametersAreSet();
+		src_resource.take(r);
+	}
+	
+	// READ ORDERS FROM CSV
+	if(ordersFromFile==true){
+		ordersFilePath = "data/d4.csv";
+		try{
+			CSVReader reader = new CSVReader(new FileReader(ordersFilePath));
+			List<String[]> records = reader.readAll();
+			records.remove(0);	// skip the header
+			for(String[] r : records){
+				// read order features
+				int csv_order_id = Integer.parseInt(r[0]);
+				String csv_machine_type = r[1];
+				int csv_date_basement_arrival = Integer.parseInt(r[2]);
+				int csv_date_electrical_panel_arrival = Integer.parseInt(r[3]);
+				int csv_date_delivery = Integer.parseInt(r[4]);
+				
+				traceln("order in file");
+				traceln("csv_order_id: "+csv_order_id);
+				traceln("csv_machine_type: "+csv_machine_type);
+				traceln("csv_date_basement_arrival: "+csv_date_basement_arrival);
+				traceln("csv_date_electrical_panel_arrival: "+csv_date_electrical_panel_arrival);
+				traceln("csv_date_delivery: "+csv_date_delivery);
+				traceln("");
+				
+				//int csv_order_priority = 1;
+				int csv_order_priority = 1000-csv_order_id;
+							
+				// add the order to the orders collection
+				Lt csv_lt = new Lt();
+				csv_lt.id = csv_order_id;
+				csv_lt.machineType = csv_machine_type;
+				csv_lt.productionDay = 1;
+				csv_lt.set_wkc_status_id("undefined");
+				csv_lt.set_odv("undefined");
+				csv_lt.set_matricola(csv_machine_type+" "+csv_order_id);
+				csv_lt.set_data_inizio("2024-07-05T07:17:41");
+				csv_lt.set_data_spedizione("2024-07-05T07:17:41");
+				csv_lt.set_avanzamento("0");
+				csv_lt.set_color_avanz("undefined");
+				csv_lt.set_data_fine_prevista("2024-07-05T07:17:41");
+				csv_lt.set_data_obiettivo("2024-07-05T07:17:41");
+				csv_lt.set_stato_avanz("undefined");
+				csv_lt.set_data_ultimo_aggiornamento("2024-07-05T07:17:41");
+				csv_lt.set_stato_macchina("undefined");
+				csv_lt.set_stato("undefined");
+				csv_lt.set_app_strong("undefined");
+				csv_lt.set_parameter_description("undefined");
+				csv_lt.set_parameter_value("undefined");
+				csv_lt.set_checklist_id("undefined");
+				csv_lt.set_checklist_operation_id("undefined");
+				csv_lt.set_data_collector_id("undefined");
+				csv_lt.set_priority(csv_order_priority);
+				csv_lt.set_date_delivery(csv_date_delivery);
+				csv_lt.set_date_basement_arrival(csv_date_basement_arrival);
+				csv_lt.set_date_electrical_panel_arrival(csv_date_electrical_panel_arrival);
+				
+				// assign the next available piazzola to the order
+				////csv_lt.piazzola = getNextAvailablePiazzola();
+				////Piazzola p = piazzole.get(csv_lt.piazzola);
+				////p.allocate(	csv_lt.wkc_status_id,
+							////csv_lt.odv,
+							////csv_lt.matricola,
+							////csv_lt.data_inizio,
+							////csv_lt.data_spedizione,
+							////csv_lt.avanzamento,
+							////csv_lt.color_avanz,
+							////csv_lt.data_fine_prevista,
+							////csv_lt.data_obiettivo,
+							////csv_lt.stato_avanz,
+							////csv_lt.data_ultimo_aggiornamento,
+							////csv_lt.stato_macchina,
+							////csv_lt.stato,
+							////csv_lt.app_strong,
+							////csv_lt.parameter_description,
+							////csv_lt.parameter_value, 
+							////csv_lt.checklist_id, 
+							////csv_lt.checklist_operation_id,
+							////csv_lt.data_collector_id);
+				
+				// start the order diagram
+				csv_lt.markParametersAreSet();
+				orders.put(csv_lt.id, csv_lt);
+				src_lt.take(csv_lt);
+			}
+			
+			// compute order schedule according the order priorities
+			getSchedule();
+		}catch(Exception e){
+			traceln("Exception during order csv file reading");
+		}
+	}
+	
+	// everything has been properly initialized
+	// unlock the daily update mutex and start the execution
+	dailyUpdateMutex = true;
+	traceln("setup completed");
+}]]></StartupCode>
 			<Generic>false</Generic>
 			<GenericParameter>
 				<Id>1721641303195</Id>
@@ -402,10 +514,57 @@ piazzole.put("E4", e4);]]></StartupCode>
 						</InitialValue>
 					</Properties>
 				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1722247543014</Id>
+					<Name><![CDATA[makespan]]></Name>
+					<X>980</X><Y>-350</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[1]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1722257001507</Id>
+					<Name><![CDATA[dailyUpdateMutex]]></Name>
+					<Description><![CDATA[The daily update mutex prevents the computational flow entering the daily update before all the processes from the csv file has been stored in the list.]]></Description>
+					<X>400</X><Y>1310</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[boolean]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
+				<Variable Class="PlainVariable">
+					<Id>1722258237595</Id>
+					<Name><![CDATA[totalDeliveredOrder]]></Name>
+					<Description><![CDATA[How many orders have been delivered.]]></Description>
+					<X>750</X><Y>-470</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" Constant="false" AccessType="public" StaticVariable="false">
+						<Type><![CDATA[int]]></Type>        
+						<InitialValue Class="CodeValue">
+							<Code><![CDATA[0]]></Code>
+						</InitialValue>
+					</Properties>
+				</Variable>
 				<Variable Class="Parameter">
 					<Id>1721835393025</Id>
 					<Name><![CDATA[orderAutoincrementId]]></Name>
-					<X>260</X><Y>-480</Y>
+					<X>260</X><Y>-510</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -439,7 +598,7 @@ piazzole.put("E4", e4);]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[2]]></Code>
+							<Code><![CDATA[1]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1721902097087</Id>
@@ -463,7 +622,7 @@ piazzole.put("E4", e4);]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[2]]></Code>
+							<Code><![CDATA[1]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1721902120206</Id>
@@ -487,10 +646,103 @@ piazzole.put("E4", e4);]]></StartupCode>
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[2]]></Code>
+							<Code><![CDATA[1]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1721902128873</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1722242649488</Id>
+					<Name><![CDATA[ordersFromFile]]></Name>
+					<X>260</X><Y>-420</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[true]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1722242649486</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1722243695500</Id>
+					<Name><![CDATA[connectToOpt]]></Name>
+					<X>980</X><Y>-470</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[true]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1722243695498</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1722244299417</Id>
+					<Name><![CDATA[adigeSetup]]></Name>
+					<X>980</X><Y>-380</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[AdigeSetup]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<ParameterEditor>
+							<Id>1722244299415</Id>
+							<EditorContolType>TEXT_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
+				<Variable Class="Parameter">
+					<Id>1722246402529</Id>
+					<Name><![CDATA[ordersFilePath]]></Name>
+					<X>260</X><Y>-390</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[String]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA["undefined"]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1722246402527</Id>
 							<EditorContolType>TEXT_BOX</EditorContolType>
 							<MinSliderValue><![CDATA[0]]></MinSliderValue>
 							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
@@ -517,7 +769,7 @@ piazzole.put("E4", e4);]]></StartupCode>
 					<Id>1721834774181</Id>
 					<Name><![CDATA[orders]]></Name>
 					<Description><![CDATA[The key is the unique identifier of the order, the value is the corresponding LT object.]]></Description>
-					<X>260</X><Y>-510</Y>
+					<X>260</X><Y>-540</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -533,7 +785,7 @@ piazzole.put("E4", e4);]]></StartupCode>
 					<Id>1721918598904</Id>
 					<Name><![CDATA[orderSchedule]]></Name>
 					<Description><![CDATA[The set of order integer identifiers sorted according to their priority.]]></Description>
-					<X>260</X><Y>-420</Y>
+					<X>260</X><Y>-450</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1034,39 +1286,6 @@ piazzole.put("E4", e4);]]></StartupCode>
 					<Points>
 						<Point><X>450</X><Y>1480</Y></Point>
 						<Point><X>400</X><Y>1480</Y></Point>
-					</Points>
-				</Connector>
-				<Connector>
-					<Id>1722070103361</Id>
-					<Name><![CDATA[connector16]]></Name>
-					<X>220</X><Y>1710</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<SourceEmbeddedObjectReference>
-						<PackageName><![CDATA[adige]]></PackageName>
-						<ClassName><![CDATA[Main]]></ClassName>
-						<ItemName><![CDATA[production]]></ItemName>
-					</SourceEmbeddedObjectReference>
-					<SourceConnectableItemReference>
-						<PackageName><![CDATA[com.anylogic.libraries.processmodeling]]></PackageName>
-						<ClassName><![CDATA[Delay]]></ClassName>
-						<ItemName><![CDATA[in]]></ItemName>
-					</SourceConnectableItemReference>
-					<TargetEmbeddedObjectReference>
-						<PackageName><![CDATA[adige]]></PackageName>
-						<ClassName><![CDATA[Main]]></ClassName>
-						<ItemName><![CDATA[src_lt]]></ItemName>
-					</TargetEmbeddedObjectReference>
-					<TargetConnectableItemReference>
-						<PackageName><![CDATA[com.anylogic.libraries.processmodeling]]></PackageName>
-						<ClassName><![CDATA[Enter]]></ClassName>
-						<ItemName><![CDATA[out]]></ItemName>
-					</TargetConnectableItemReference>
-					<Points>
-						<Point><X>0</X><Y>0</Y></Point>
-						<Point><X>-130</X><Y>0</Y></Point>
 					</Points>
 				</Connector>
 				<Connector>
@@ -1797,6 +2016,72 @@ piazzole.put("E4", e4);]]></StartupCode>
 						<Point><X>60</X><Y>-80</Y></Point>
 					</Points>
 				</Connector>
+				<Connector>
+					<Id>1722267573536</Id>
+					<Name><![CDATA[connector37]]></Name>
+					<X>180</X><Y>1710</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<SourceEmbeddedObjectReference>
+						<PackageName><![CDATA[adige]]></PackageName>
+						<ClassName><![CDATA[Main]]></ClassName>
+						<ItemName><![CDATA[waiting]]></ItemName>
+					</SourceEmbeddedObjectReference>
+					<SourceConnectableItemReference>
+						<PackageName><![CDATA[com.anylogic.libraries.processmodeling]]></PackageName>
+						<ClassName><![CDATA[Delay]]></ClassName>
+						<ItemName><![CDATA[out]]></ItemName>
+					</SourceConnectableItemReference>
+					<TargetEmbeddedObjectReference>
+						<PackageName><![CDATA[adige]]></PackageName>
+						<ClassName><![CDATA[Main]]></ClassName>
+						<ItemName><![CDATA[production]]></ItemName>
+					</TargetEmbeddedObjectReference>
+					<TargetConnectableItemReference>
+						<PackageName><![CDATA[com.anylogic.libraries.processmodeling]]></PackageName>
+						<ClassName><![CDATA[Delay]]></ClassName>
+						<ItemName><![CDATA[in]]></ItemName>
+					</TargetConnectableItemReference>
+					<Points>
+						<Point><X>0</X><Y>0</Y></Point>
+						<Point><X>40</X><Y>0</Y></Point>
+					</Points>
+				</Connector>
+				<Connector>
+					<Id>1722268035104</Id>
+					<Name><![CDATA[connector38]]></Name>
+					<X>90</X><Y>1710</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<SourceEmbeddedObjectReference>
+						<PackageName><![CDATA[adige]]></PackageName>
+						<ClassName><![CDATA[Main]]></ClassName>
+						<ItemName><![CDATA[src_lt]]></ItemName>
+					</SourceEmbeddedObjectReference>
+					<SourceConnectableItemReference>
+						<PackageName><![CDATA[com.anylogic.libraries.processmodeling]]></PackageName>
+						<ClassName><![CDATA[Enter]]></ClassName>
+						<ItemName><![CDATA[out]]></ItemName>
+					</SourceConnectableItemReference>
+					<TargetEmbeddedObjectReference>
+						<PackageName><![CDATA[adige]]></PackageName>
+						<ClassName><![CDATA[Main]]></ClassName>
+						<ItemName><![CDATA[waiting]]></ItemName>
+					</TargetEmbeddedObjectReference>
+					<TargetConnectableItemReference>
+						<PackageName><![CDATA[com.anylogic.libraries.processmodeling]]></PackageName>
+						<ClassName><![CDATA[Delay]]></ClassName>
+						<ItemName><![CDATA[in]]></ItemName>
+					</TargetConnectableItemReference>
+					<Points>
+						<Point><X>0</X><Y>0</Y></Point>
+						<Point><X>50</X><Y>0</Y></Point>
+					</Points>
+				</Connector>
 			</Connectors>
 			<StatechartElements>
 				<StatechartElement Class="State" ParentState="ROOT_NODE">
@@ -1943,7 +2228,7 @@ for(int orderId : orderSchedule){
 		traceln("assign M resources");
 		for(int i=0; i<targetOrder_required_m; i++){
 			for(Resource r : population_resources){
-				if(r.resourceType=="M" && r.assignedOrderId==-1){
+				if(r.resourceType.equals("M") && r.assignedOrderId==-1){
 					r.assignedOrderId = orderId;
 					r.markParametersAreSet();
 					targetOrder.m = targetOrder.m-1;
@@ -1959,7 +2244,7 @@ for(int orderId : orderSchedule){
 		traceln("assign E resources");
 		for(int i=0; i<targetOrder_required_e; i++){
 			for(Resource r : population_resources){
-				if(r.resourceType=="E" && r.assignedOrderId==-1){
+				if(r.resourceType.equals("E") && r.assignedOrderId==-1){
 					r.assignedOrderId = orderId;
 					r.markParametersAreSet();
 					targetOrder.e = targetOrder.e-1;
@@ -1975,7 +2260,7 @@ for(int orderId : orderSchedule){
 		traceln("assign R resources");
 		for(int i=0; i<targetOrder_required_r; i++){
 			for(Resource r : population_resources){
-				if(r.resourceType=="R" && r.assignedOrderId==-1){
+				if(r.resourceType.equals("R") && r.assignedOrderId==-1){
 					r.assignedOrderId = orderId;
 					r.markParametersAreSet();
 					targetOrder.r = targetOrder.r-1;
@@ -2124,7 +2409,7 @@ for(int orderId : orderSchedule){
 						<OccurrenceAtTime>true</OccurrenceAtTime>
 						<OccurrenceDate>1722067200000</OccurrenceDate>
 						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[2]]></Code>
+							<Code><![CDATA[5]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[DAY]]></Unit>
 						</OccurrenceTime>
 						<RecurrenceCode Class="CodeUnitValue">
@@ -2133,137 +2418,183 @@ for(int orderId : orderSchedule){
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
-					<Action><![CDATA[// update sinottico header
-simulation_day = simulation_day+1;
-traceln("Day "+simulation_day);
-sinottico_header.setText("Day "+simulation_day);
-traceln("");
-
-// deallocate resources
-traceln("deallocate resources");
-for(Resource r : population_resources){
-	r.assignedOrderId = -1;
-}
-for(String piazzola_key : piazzole.keySet()){
-	Piazzola p = piazzole.get(piazzola_key);
-	p.removeAllResources();
-}
-traceln("available resource: ");
-traceln("m="+population_resources.m_available_resources());
-traceln("e="+population_resources.e_available_resources());
-traceln("r="+population_resources.r_available_resources());
-traceln("");
-
-// iterate orders according to their priorities in descending order
-for (int orderId : orderSchedule) {
-	Lt o = orders.get(orderId);
-	if(o.completed==false){
-		Piazzola p = piazzole.get(o.piazzola);
-		traceln("Check order "+o.id+" located in "+p.piazzola);
-		if(o.m==0 && o.e==0 && o.r==0){
-			// the order has completed the production day
-			o.productionDay = o.productionDay+1;
-			if(o.productionDay>o.getTotalProductionDays()){
-				// the order has been completed and can be sent to the logistic center
-				production.stopDelay(o);
-				o.completed = true;
-			}
-		}
+					<Action><![CDATA[if(dailyUpdateMutex==true){
+	// update sinottico header
+	simulation_day = simulation_day+1;
+	traceln("Day "+simulation_day);
+	sinottico_header.setText("Day "+simulation_day);
+	traceln("");
 	
+	// deallocate resources
+	////traceln("deallocate resources");
+	for(Resource r : population_resources){
+		r.assignedOrderId = -1;
+	}
+	for(String piazzola_key : piazzole.keySet()){
+		Piazzola p = piazzole.get(piazzola_key);
+		p.removeAllResources();
+	}
+	////traceln("available resource: ");
+	////traceln("m="+population_resources.m_available_resources());
+	////traceln("e="+population_resources.e_available_resources());
+	////traceln("r="+population_resources.r_available_resources());
+	////traceln("");
+	
+	// iterate orders according to their priorities in descending order
+	for (int orderId : orderSchedule) {
+		Lt o = orders.get(orderId);
 		if(o.completed==false){
-			// update basement and electrical panel flags
-			if(simulation_day>=o.date_basement_arrival){
-				p.ui_basement_flag.setFillColor(green);
-			}
-			if(simulation_day>=o.date_electrical_panel_arrival){
-				p.ui_electrical_panel_flag.setFillColor(green);
-			}
-			
-			// check basement and electrical panel flags
-			// if the machine production requires the arrival of the basement or electric panel
-			// for the current stage, we have to wait
-			if(o.checkBasement(simulation_day)==true && o.checkBasement(simulation_day)==true){
-				// update order requirements
-				o.updateMachineRequirements();
-				
-				traceln("order requirements:");
-				
-				// check whether we can go on with the order given the current available resources
-				// if this is the case, allocate the resources for the given order
-				int required_m = o.m;
-				int required_e = o.e;
-				int required_r = o.r;
-				traceln("required_m="+required_m);
-				traceln("required_e="+required_e);
-				traceln("required_r="+required_r);
-				
-				if(	population_resources.m_available_resources()>=required_m &&
-					population_resources.e_available_resources()>=required_e &&
-					population_resources.r_available_resources()>=required_r){
-					
-					// there are enough resources to go on with the order so, reserve the resources for the order
-					// M
-					for(int i=0; i<required_m; i++){
-						for(Resource r : population_resources){
-							if(r.resourceType=="M" && r.assignedOrderId==-1){
-								r.assignedOrderId = orderId;
-								r.markParametersAreSet();
-								o.m = o.m-1;
-								o.markParametersAreSet();
-								p.addResource(r.resourceType);
-								traceln("assigned resource M");
-								break;				
-							}
-						}
-					}
-					
-					// E
-					for(int i=0; i<required_e; i++){
-						for(Resource r : population_resources){
-							if(r.resourceType=="E" && r.assignedOrderId==-1){
-								r.assignedOrderId = orderId;
-								r.markParametersAreSet();
-								o.e = o.e-1;
-								o.markParametersAreSet();
-								p.addResource(r.resourceType);
-								traceln("assigned resource E");
-								break;				
-							}
-						}
-					}
-					
-					// R
-					for(int i=0; i<required_r; i++){
-						for(Resource r : population_resources){
-							if(r.resourceType=="R" && r.assignedOrderId==-1){
-								r.assignedOrderId = orderId;
-								r.markParametersAreSet();
-								o.r = o.r-1;
-								o.markParametersAreSet();
-								p.addResource(r.resourceType);
-								traceln("assigned resource R");
-								break;				
-							}
-						}
-					}			
+			// check if the order is in piazzola
+			if(o.inPiazzola==false){
+				// the order is not in piazzola. Check whether there are enough piazzole.			
+				String nextAvailablePiazzola = getNextAvailablePiazzola();
+				if(nextAvailablePiazzola.equals("none")==false){
+					// assign the next available piazzola to the order
+					o.piazzola = new String(nextAvailablePiazzola);
+					Piazzola p = piazzole.get(o.piazzola);
+					p.allocate(	o.wkc_status_id,
+								o.odv,
+								o.matricola,
+								o.data_inizio,
+								o.data_spedizione,
+								o.avanzamento,
+								o.color_avanz,
+								o.data_fine_prevista,
+								o.data_obiettivo,
+								o.stato_avanz,
+								o.data_ultimo_aggiornamento,
+								o.stato_macchina,
+								o.stato,
+								o.app_strong,
+								o.parameter_description,
+								o.parameter_value, 
+								o.checklist_id, 
+								o.checklist_operation_id,
+								o.data_collector_id);
+					o.inPiazzola = true;
+					o.updateMachineRequirements();
+					o.markParametersAreSet();
+					waiting.stopDelay(o);
 				}
 			}
+		
+			if(o.inPiazzola==true){
+				// the order is in piazzola. Hence it can be processed
+				Piazzola p = piazzole.get(o.piazzola);
+				traceln("Check order "+o.id+" located in "+p.piazzola);
+				if(o.m==0 && o.e==0 && o.r==0){
+					// the order has completed the production day
+					o.productionDay = o.productionDay+1;
+					if(o.productionDay>o.getTotalProductionDays()){
+						// the order has been completed and can be sent to the logistic center
+						production.stopDelay(o);
+						o.completed = true;
+					}
+				}
 			
-			// update Piazzola ui
-			p.setProgress(Float.toString((100*(o.productionDay))/o.getTotalProductionDays()));
-			p.ui_production_day.setText(String.valueOf(o.productionDay));
-			p.setColor(o.getMachineColor());
-			
-			traceln("");
+				if(o.completed==false){
+					// update basement and electrical panel flags
+					if(simulation_day>=o.date_basement_arrival){
+						p.ui_basement_flag.setFillColor(green);
+					}
+					if(simulation_day>=o.date_electrical_panel_arrival){
+						p.ui_electrical_panel_flag.setFillColor(green);
+					}
+					
+					// check basement and electrical panel flags
+					// if the machine production requires the arrival of the basement or electric panel
+					// for the current stage, we have to wait
+					if(o.checkBasement(simulation_day)==true && o.checkBasement(simulation_day)==true){
+						// update order requirements
+						o.updateMachineRequirements();
+						
+						////traceln("order requirements:");
+						
+						// check whether we can go on with the order given the current available resources
+						// if this is the case, allocate the resources for the given order
+						int required_m = o.m;
+						int required_e = o.e;
+						int required_r = o.r;
+						////traceln("required_m="+required_m);
+						////traceln("required_e="+required_e);
+						////traceln("required_r="+required_r);
+						
+						if(	population_resources.m_available_resources()>=required_m &&
+							population_resources.e_available_resources()>=required_e &&
+							population_resources.r_available_resources()>=required_r){
+							
+							// there are enough resources to go on with the order so, reserve the resources for the order
+							// M
+							for(int i=0; i<required_m; i++){
+								for(Resource r : population_resources){
+									if(r.resourceType.equals("M") && r.assignedOrderId==-1){
+										r.assignedOrderId = orderId;
+										r.markParametersAreSet();
+										o.m = o.m-1;
+										o.markParametersAreSet();
+										p.addResource(r.resourceType);
+										traceln("assigned resource M");
+										break;				
+									}
+								}
+							}
+							
+							// E
+							for(int i=0; i<required_e; i++){
+								for(Resource r : population_resources){
+									if(r.resourceType.equals("E") && r.assignedOrderId==-1){
+										r.assignedOrderId = orderId;
+										r.markParametersAreSet();
+										o.e = o.e-1;
+										o.markParametersAreSet();
+										p.addResource(r.resourceType);
+										traceln("assigned resource E");
+										break;				
+									}
+								}
+							}
+							
+							// R
+							for(int i=0; i<required_r; i++){
+								for(Resource r : population_resources){
+									if(r.resourceType.equals("R") && r.assignedOrderId==-1){
+										r.assignedOrderId = orderId;
+										r.markParametersAreSet();
+										o.r = o.r-1;
+										o.markParametersAreSet();
+										p.addResource(r.resourceType);
+										traceln("assigned resource R");
+										break;				
+									}
+								}
+							}			
+						}
+					}
+					
+					// update Piazzola ui
+					p.setProgress(Float.toString((100*(o.productionDay))/o.getTotalProductionDays()));
+					p.ui_production_day.setText(String.valueOf(o.productionDay));
+					p.setColor(o.getMachineColor());
+					
+					traceln("");
+				}
+			}
+		}else if(o.atLogisticCenter==true && o.delivered==false && o.date_delivery<=simulation_day){
+			o.delivered = true;
+			o.rectangle.setFillColor(green);
+			totalDeliveredOrder = totalDeliveredOrder+1;
 		}
-	}else if(o.atLogisticCenter==true && o.delivered==false && o.date_delivery<=simulation_day){
-		o.delivered = true;
-		o.rectangle.setFillColor(green);
 	}
-}
-
-// start moving the Truck
-src_truck.inject();]]></Action>
+	
+	// if the simulation is intended to process the orders from a file
+	// stop the simultation if we have delivered all the orders
+	if(ordersFromFile==true){
+		checkDone();
+	}
+	
+	// start moving the Truck
+	src_truck.inject();
+}]]></Action>
 				</Event>
 			</Events>
 			<Functions>
@@ -2470,7 +2801,7 @@ return second;]]></Body>
 					<ReturnType><![CDATA[String]]></ReturnType>
 					<Id>1721835820616</Id>
 					<Name><![CDATA[getNextAvailablePiazzola]]></Name>
-					<Description><![CDATA[Return the next available piazzola.]]></Description>
+					<Description><![CDATA[Return the next available piazzola. If there are not available Piazzola then return "none".]]></Description>
 					<X>50</X><Y>-480</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2482,7 +2813,7 @@ return second;]]></Body>
 		return piazzolaKey;
 	}
 }
-return "error";]]></Body>
+return "none";]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -2490,7 +2821,7 @@ return "error";]]></Body>
 					<Id>1721918066864</Id>
 					<Name><![CDATA[getSchedule]]></Name>
 					<Description><![CDATA[Fill orderSchedule with the list of orders sorted by priorities.]]></Description>
-					<X>260</X><Y>-450</Y>
+					<X>260</X><Y>-480</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2505,6 +2836,173 @@ orderList.sort((entry1, entry2) -> Integer.compare(entry2.getValue().priority, e
 orderSchedule.clear();
 for (Map.Entry<Integer, Lt> entry : orderList) {
   orderSchedule.add(entry.getKey());
+}]]></Body>
+				</Function>
+				<Function AccessType="public" StaticFunction="false">
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnType><![CDATA[boolean]]></ReturnType>
+					<Id>1722243740654</Id>
+					<Name><![CDATA[setupAndRun]]></Name>
+					<X>980</X><Y>-440</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Parameter>
+						<Name><![CDATA[modelConfig]]></Name>
+						<Type><![CDATA[Object]]></Type>
+					</Parameter>
+					<Body><![CDATA[try {
+    // parse object input into custom model input setup
+    AdigeSetup adigeSetup = (AdigeSetup) modelConfig;
+    // store settings in model parameter
+    this.adigeSetup = adigeSetup;
+    
+    // set available resources
+    totalAvailableM = adigeSetup.getTotalAvailableM();
+    totalAvailableE = adigeSetup.getTotalAvailableE();
+    totalAvailableR = adigeSetup.getTotalAvailableR();
+    
+    // set orders file name
+    ordersFilePath = adigeSetup.getDatasetFilePath();
+    
+    //CREATE HUMAN RESOURCES
+	// mechanical resources
+	for(int i=0; i<totalAvailableM; i++){
+		Resource r = new Resource();
+		r.resourceType = "M";
+		r.assignedOrderId = -1;
+		r.markParametersAreSet();
+		src_resource.take(r);
+	} 
+	// electrical resources
+	for(int i=0; i<totalAvailableE; i++){
+		Resource r = new Resource();
+		r.resourceType = "E";
+		r.assignedOrderId = -1;
+		r.markParametersAreSet();
+		src_resource.take(r);
+	} 
+	// repair resources
+	for(int i=0; i<totalAvailableR; i++){
+		Resource r = new Resource();
+		r.resourceType = "R";
+		r.assignedOrderId = -1;
+		r.markParametersAreSet();
+		src_resource.take(r);
+	}
+	
+	// READ ORDERS FROM CSV
+	CSVReader reader = new CSVReader(new FileReader(ordersFilePath));
+	List<String[]> records = reader.readAll();
+	records.remove(0);	// skip the header
+	for(String[] r : records){
+		// read order features
+		int csv_order_id = Integer.parseInt(r[0]);
+		String csv_machine_type = r[1];
+		int csv_date_basement_arrival = Integer.parseInt(r[2]);
+		int csv_date_electrical_panel_arrival = Integer.parseInt(r[3]);
+		int csv_date_delivery = Integer.parseInt(r[4]);
+		
+		traceln("order in file");
+		traceln("csv_order_id: "+csv_order_id);
+		traceln("csv_machine_type: "+csv_machine_type);
+		traceln("csv_date_basement_arrival: "+csv_date_basement_arrival);
+		traceln("csv_date_electrical_panel_arrival: "+csv_date_electrical_panel_arrival);
+		traceln("csv_date_delivery: "+csv_date_delivery);
+		traceln("");
+		
+		int csv_order_priority = 1;
+		// assign order priority reading optimizer's design variables
+		csv_order_priority = adigeSetup.getPriorityValue(csv_order_id);
+					
+		// add the order to the orders collection
+		Lt csv_lt = new Lt();
+		csv_lt.id = csv_order_id;
+		csv_lt.machineType = csv_machine_type;
+		csv_lt.productionDay = 1;
+		csv_lt.set_wkc_status_id("undefined");
+		csv_lt.set_odv("undefined");
+		csv_lt.set_matricola(csv_machine_type+" "+csv_order_id);
+		csv_lt.set_data_inizio("2024-07-05T07:17:41");
+		csv_lt.set_data_spedizione("2024-07-05T07:17:41");
+		csv_lt.set_avanzamento("0");
+		csv_lt.set_color_avanz("undefined");
+		csv_lt.set_data_fine_prevista("2024-07-05T07:17:41");
+		csv_lt.set_data_obiettivo("2024-07-05T07:17:41");
+		csv_lt.set_stato_avanz("undefined");
+		csv_lt.set_data_ultimo_aggiornamento("2024-07-05T07:17:41");
+		csv_lt.set_stato_macchina("undefined");
+		csv_lt.set_stato("undefined");
+		csv_lt.set_app_strong("undefined");
+		csv_lt.set_parameter_description("undefined");
+		csv_lt.set_parameter_value("undefined");
+		csv_lt.set_checklist_id("undefined");
+		csv_lt.set_checklist_operation_id("undefined");
+		csv_lt.set_data_collector_id("undefined");
+		csv_lt.set_priority(csv_order_priority);
+		csv_lt.set_date_delivery(csv_date_delivery);
+		csv_lt.set_date_basement_arrival(csv_date_basement_arrival);
+		csv_lt.set_date_electrical_panel_arrival(csv_date_electrical_panel_arrival);
+		
+		// start the order diagram
+		csv_lt.markParametersAreSet();
+		orders.put(csv_lt.id, csv_lt);
+		src_lt.take(csv_lt);
+	}
+	
+	// compute order schedule according the order priorities
+	getSchedule();
+	
+	traceln("order schedule: ");
+	for(int o : orderSchedule){
+		trace(o+" -");
+	}
+	traceln("");
+	
+	// everything has been properly initialized
+	// unlock the daily update mutex and start the execution
+	dailyUpdateMutex = true;    
+    
+    // everything went fine!
+    traceln("setupAndRun completed");
+    return true;
+
+} catch (Exception e) {
+    error("Something went wrong when processing model input. Error catched was: " + e.getMessage());
+}
+return false;]]></Body>
+				</Function>
+				<Function AccessType="public" StaticFunction="false">
+					<ReturnModificator>RETURNS_VALUE</ReturnModificator>
+					<ReturnType><![CDATA[Object]]></ReturnType>
+					<Id>1722243752454</Id>
+					<Name><![CDATA[getModelOutput]]></Name>
+					<X>980</X><Y>-410</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[AdigeOutput modelOutput = new AdigeOutput(this);
+return modelOutput;]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1722258286695</Id>
+					<Name><![CDATA[checkDone]]></Name>
+					<X>980</X><Y>-320</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[if(totalDeliveredOrder==orders.size()){
+	// all the orders have been delivered. We can conclude the simulation
+	makespan = simulation_day;
+	trace("makespan: ");
+	traceln(makespan);
+	
+	getEngine().finish();
 }]]></Body>
 				</Function>
 			</Functions>
@@ -3367,21 +3865,21 @@ agent.productionDay = agent.productionDay+1;]]></Code>
 						<Name><![CDATA[m_available_resources]]></Name>
 						<Type>count</Type>
 						<Expression><![CDATA[]]></Expression>
-						<Condition><![CDATA[agent.resourceType=="M" && agent.assignedOrderId==-1]]></Condition>
+						<Condition><![CDATA[agent.resourceType.equals("M") && agent.assignedOrderId==-1]]></Condition>
 					</StatisticsItem>
 					<StatisticsItem>
 						<Id>1721921148523</Id>
 						<Name><![CDATA[e_available_resources]]></Name>
 						<Type>count</Type>
 						<Expression><![CDATA[]]></Expression>
-						<Condition><![CDATA[agent.resourceType=="E" && agent.assignedOrderId==-1]]></Condition>
+						<Condition><![CDATA[agent.resourceType.equals("E") && agent.assignedOrderId==-1]]></Condition>
 					</StatisticsItem>
 					<StatisticsItem>
 						<Id>1721921150058</Id>
 						<Name><![CDATA[r_available_resources]]></Name>
 						<Type>count</Type>
 						<Expression><![CDATA[]]></Expression>
-						<Condition><![CDATA[agent.resourceType=="R" && agent.assignedOrderId==-1]]></Condition>
+						<Condition><![CDATA[agent.resourceType.equals("R") && agent.assignedOrderId==-1]]></Condition>
 					</StatisticsItem>
 					<InEnvironment>true</InEnvironment>	
 					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
@@ -4509,7 +5007,7 @@ traceln("Delivery date: "+agent.date_delivery);]]></Code>
 						<Parameter>
 							<Name><![CDATA[onEnter]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[agent.updateMachineRequirements();
+								<Code><![CDATA[//agent.updateMachineRequirements();
 Piazzola p = piazzole.get(agent.piazzola);
 p.setProgress("0");
 p.ui_production_day.setText(String.valueOf(agent.productionDay));
@@ -4816,7 +5314,8 @@ deliveryAreaMachines.add(agent);]]></Code>
 							<Value Class="CodeValue">
 								<Code><![CDATA[// free the piazzola
 Piazzola p = piazzole.get(agent.piazzola);
-p.deallocate();]]></Code>
+p.deallocate();
+agent.inPiazzola = false;]]></Code>
 							</Value>
 						</Parameter>
 						<Parameter>
@@ -6004,7 +6503,7 @@ if(agent.transportedLt_id != -1){
 						<Parameter>
 							<Name><![CDATA[condition]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[agent.transportedLt_type=="lt7"]]></Code>
+								<Code><![CDATA[agent.transportedLt_type.equals("lt7")]]></Code>
 							</Value>
 						</Parameter>
 						<Parameter>
@@ -6091,7 +6590,7 @@ if(agent.transportedLt_id != -1){
 						<Parameter>
 							<Name><![CDATA[condition]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[agent.transportedLt_type=="lt8"]]></Code>
+								<Code><![CDATA[agent.transportedLt_type.equals("lt8")]]></Code>
 							</Value>
 						</Parameter>
 						<Parameter>
@@ -6628,7 +7127,7 @@ onTruck.stopDelay(lt);]]></Code>
 						<Parameter>
 							<Name><![CDATA[condition]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[agent.machineType=="lt7"]]></Code>
+								<Code><![CDATA[agent.machineType.equals("lt7")]]></Code>
 							</Value>
 						</Parameter>
 						<Parameter>
@@ -6715,7 +7214,7 @@ onTruck.stopDelay(lt);]]></Code>
 						<Parameter>
 							<Name><![CDATA[condition]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[agent.machineType=="lt8"]]></Code>
+								<Code><![CDATA[agent.machineType.equals("lt8")]]></Code>
 							</Value>
 						</Parameter>
 						<Parameter>
@@ -6909,6 +7408,175 @@ onTruck.stopDelay(lt);]]></Code>
 						</Parameter>
 						<Parameter>
 							<Name><![CDATA[destroyEntity]]></Name>
+						</Parameter>
+					</Parameters>
+					<ReplicationFlag>false</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>SPECIFIED_NUMBER</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1722243167443</Id>
+					<Name><![CDATA[alPypeOptConnector]]></Name>
+					<X>980</X><Y>-500</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[com.alpype]]></PackageName>
+						<ClassName><![CDATA[ALPypeOptConnector]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[com.alpype]]></PackageName>
+							<ClassName><![CDATA[ALPypeOptConnector]]></ClassName>
+							<ItemName><![CDATA[1690851955933]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[connect]]></Name>
+							<Value Class="CodeValue">
+								<Code><![CDATA[connectToOpt]]></Code>
+							</Value>
+						</Parameter>
+					</Parameters>
+					<ReplicationFlag>false</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>SPECIFIED_NUMBER</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
+				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1722267569000</Id>
+					<Name><![CDATA[waiting]]></Name>
+					<X>140</X><Y>1690</Y>
+					<Label><X>-5</X><Y>-15</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[com.anylogic.libraries.processmodeling]]></PackageName>
+						<ClassName><![CDATA[Delay]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[com.anylogic.libraries.processmodeling]]></PackageName>
+							<ClassName><![CDATA[Delay]]></ClassName>
+							<ItemName><![CDATA[1412336242930]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[type]]></Name>
+							<Value Class="CodeValue">
+								<Code><![CDATA[self.MANUAL]]></Code>
+							</Value>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[delayTime]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[capacity]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[maximumCapacity]]></Name>
+							<Value Class="CodeValue">
+								<Code><![CDATA[true]]></Code>
+							</Value>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[entityLocation]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[pushProtocol]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[restoreEntityLocationOnExit]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[forceStatisticsCollection]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[onEnter]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[onAtExit]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[onExit]]></Name>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[onRemove]]></Name>
 						</Parameter>
 					</Parameters>
 					<ReplicationFlag>false</ReplicationFlag>
@@ -14251,27 +14919,27 @@ lt7.set_date_delivery(20*orderAutoincrementId);
 lt7.set_date_basement_arrival(5);
 
 // assign the next available piazzola to the order
-lt7.piazzola = getNextAvailablePiazzola();
-Piazzola p = piazzole.get(lt7.piazzola);
-p.allocate(	lt7.wkc_status_id,
-			lt7.odv,
-			lt7.matricola,
-			lt7.data_inizio,
-			lt7.data_spedizione,
-			lt7.avanzamento,
-			lt7.color_avanz,
-			lt7.data_fine_prevista,
-			lt7.data_obiettivo,
-			lt7.stato_avanz,
-			lt7.data_ultimo_aggiornamento,
-			lt7.stato_macchina,
-			lt7.stato,
-			lt7.app_strong,
-			lt7.parameter_description,
-			lt7.parameter_value, 
-			lt7.checklist_id, 
-			lt7.checklist_operation_id,
-			lt7.data_collector_id);
+////lt7.piazzola = getNextAvailablePiazzola();
+////Piazzola p = piazzole.get(lt7.piazzola);
+////p.allocate(	lt7.wkc_status_id,
+			////lt7.odv,
+			////lt7.matricola,
+			////lt7.data_inizio,
+			////lt7.data_spedizione,
+			////lt7.avanzamento,
+			////lt7.color_avanz,
+			////lt7.data_fine_prevista,
+			////lt7.data_obiettivo,
+			////lt7.stato_avanz,
+			////lt7.data_ultimo_aggiornamento,
+			////lt7.stato_macchina,
+			////lt7.stato,
+			////lt7.app_strong,
+			////lt7.parameter_description,
+			////lt7.parameter_value, 
+			////lt7.checklist_id, 
+			////lt7.checklist_operation_id,
+			////lt7.data_collector_id);
 orderAutoincrementId = orderAutoincrementId+1;
 orders.put(lt7.id, lt7);
 getSchedule();	// DA NON METTERE QUANDO SI LEGGE DA FILE!!
@@ -14334,27 +15002,27 @@ lt8.set_date_delivery(30*orderAutoincrementId);
 lt8.set_date_basement_arrival(10);
 
 // assign the next available piazzola to the order
-lt8.piazzola = getNextAvailablePiazzola();
-Piazzola p = piazzole.get(lt8.piazzola);
-p.allocate(	lt8.wkc_status_id,
-			lt8.odv,
-			lt8.matricola,
-			lt8.data_inizio,
-			lt8.data_spedizione,
-			lt8.avanzamento,
-			lt8.color_avanz,
-			lt8.data_fine_prevista,
-			lt8.data_obiettivo,
-			lt8.stato_avanz,
-			lt8.data_ultimo_aggiornamento,
-			lt8.stato_macchina,
-			lt8.stato,
-			lt8.app_strong,
-			lt8.parameter_description,
-			lt8.parameter_value, 
-			lt8.checklist_id, 
-			lt8.checklist_operation_id,
-			lt8.data_collector_id);
+////lt8.piazzola = getNextAvailablePiazzola();
+////Piazzola p = piazzole.get(lt8.piazzola);
+////p.allocate(	lt8.wkc_status_id,
+			////lt8.odv,
+			////lt8.matricola,
+			////lt8.data_inizio,
+			////lt8.data_spedizione,
+			////lt8.avanzamento,
+			////lt8.color_avanz,
+			////lt8.data_fine_prevista,
+			////lt8.data_obiettivo,
+			////lt8.stato_avanz,
+			////lt8.data_ultimo_aggiornamento,
+			////lt8.stato_macchina,
+			////lt8.stato,
+			////lt8.app_strong,
+			////lt8.parameter_description,
+			////lt8.parameter_value, 
+			////lt8.checklist_id, 
+			////lt8.checklist_operation_id,
+			////lt8.data_collector_id);
 orderAutoincrementId = orderAutoincrementId+1;
 orders.put(lt8.id, lt8);
 getSchedule();	// DA NON METTERE QUANDO SI LEGGE DA FILE!!
@@ -14411,7 +15079,7 @@ src_lt.take(lt8);]]></ActionCode>
 				<Text>
 					<Id>1721834715151</Id>
 					<Name><![CDATA[text4]]></Name>
-					<X>260</X><Y>-540</Y>
+					<X>260</X><Y>-570</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21056,6 +21724,91 @@ src_lt.take(lt8);]]></ActionCode>
 					<FillColor>-1</FillColor>
 					<FillMaterial>null</FillMaterial>
 				</Oval>
+				<Text>
+					<Id>1722242707924</Id>
+					<Name><![CDATA[text13]]></Name>
+					<X>970</X><Y>-540</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Optimizer]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>10</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>LEFT</Alignment>
+				</Text>
+				<Rectangle>
+					<Id>1722246705286</Id>
+					<Name><![CDATA[rectangle5]]></Name>
+					<X>865</X><Y>5</Y>
+					<Label><X>10</X><Y>10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<ZHeight>10</ZHeight>
+					<LineWidth>1</LineWidth>
+					<LineColor/>
+					<LineMaterial>null</LineMaterial>
+					<LineStyle>SOLID</LineStyle>
+					<Width>60.09882017668852</Width>
+					<Height>29.70383275261324</Height>
+					<Rotation>0.0</Rotation>
+					<FillColor>-2302756</FillColor>
+					<FillMaterial>null</FillMaterial>
+				</Rectangle>
+				<Text>
+					<Id>1722246705288</Id>
+					<Name><![CDATA[runCounterText]]></Name>
+					<X>895.049</X><Y>7.7</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-9868951</Color>
+					<Text><![CDATA[66]]></Text>
+					<Font>
+						<Name>Ubuntu</Name>
+						<Size>14</Size>
+						<Style>1</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
+				<Text>
+					<Id>1722246705290</Id>
+					<Name><![CDATA[text22]]></Name>
+					<X>895.049</X><Y>23.902</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-8355712</Color>
+					<Text><![CDATA[RUN COUNTER]]></Text>
+					<Font>
+						<Name>Ubuntu</Name>
+						<Size>8</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
 			</Presentation>
 
 				</Level>
@@ -21600,7 +22353,7 @@ src_lt.take(lt8);]]></ActionCode>
 				<Variable Class="Parameter">
 					<Id>1721834134192</Id>
 					<Name><![CDATA[productionDay]]></Name>
-					<X>510</X><Y>50</Y>
+					<X>510</X><Y>20</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21771,7 +22524,7 @@ src_lt.take(lt8);]]></ActionCode>
 				<Variable Class="Parameter">
 					<Id>1722093566828</Id>
 					<Name><![CDATA[completed]]></Name>
-					<X>850</X><Y>50</Y>
+					<X>850</X><Y>20</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21867,7 +22620,7 @@ src_lt.take(lt8);]]></ActionCode>
 				<Variable Class="Parameter">
 					<Id>1722174551000</Id>
 					<Name><![CDATA[atLogisticCenter]]></Name>
-					<X>850</X><Y>80</Y>
+					<X>850</X><Y>50</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21891,7 +22644,7 @@ src_lt.take(lt8);]]></ActionCode>
 				<Variable Class="Parameter">
 					<Id>1722174593649</Id>
 					<Name><![CDATA[delivered]]></Name>
-					<X>850</X><Y>110</Y>
+					<X>850</X><Y>80</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -21912,6 +22665,30 @@ src_lt.take(lt8);]]></ActionCode>
 						</ParameterEditor>
 					</Properties>                 
 				</Variable>
+				<Variable Class="Parameter">
+					<Id>1722266430238</Id>
+					<Name><![CDATA[inPiazzola]]></Name>
+					<X>850</X><Y>110</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties SaveInSnapshot="true" ModificatorType="STATIC">
+						<Type><![CDATA[boolean]]></Type>
+						<UnitType><![CDATA[NONE]]></UnitType>
+						<SdArray>false</SdArray>
+						<DefaultValue Class="CodeValue">
+							<Code><![CDATA[false]]></Code>
+						</DefaultValue>
+						<ParameterEditor>
+							<Id>1722266430236</Id>
+							<EditorContolType>CHECK_BOX</EditorContolType>
+							<MinSliderValue><![CDATA[0]]></MinSliderValue>
+							<MaxSliderValue><![CDATA[100]]></MaxSliderValue>
+							<DelimeterType>NO_DELIMETER</DelimeterType>
+						</ParameterEditor>
+					</Properties>                 
+				</Variable>
 			</Variables>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
@@ -21925,9 +22702,9 @@ src_lt.take(lt8);]]></ActionCode>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if(machineType=="none"){
+					<Body><![CDATA[if(machineType.equals("none")){
 	m=0;e=0;r=0;
-}else if(machineType=="lt7"){
+}else if(machineType.equals("lt7")){
 switch(productionDay){
 	case 1:
 		m = 1;e = 0;r = 0;
@@ -22016,7 +22793,7 @@ switch(productionDay){
 	default:
 		traceln("FATAL ERROR");
 }
-}else if(machineType=="lt8"){
+}else if(machineType.equals("lt8")){
 switch(productionDay){
 	case 1:
 		m = 1;e = 0;r = 0;
@@ -22117,7 +22894,7 @@ switch(productionDay){
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if(machineType=="lt7"){
+					<Body><![CDATA[if(machineType.equals("lt7")){
 switch(productionDay){
 	case 1:
 		return lightGrey;	// grigio
@@ -22178,7 +22955,7 @@ switch(productionDay){
 	default:
 		traceln("FATAL ERROR");
 }
-}else if(machineType=="lt8"){
+}else if(machineType.equals("lt8")){
 switch(productionDay){
 	case 1:
 		return lightGrey;	// grigio
@@ -22248,14 +23025,14 @@ return lightGrey;]]></Body>
 					<Id>1722073340948</Id>
 					<Name><![CDATA[getTotalProductionDays]]></Name>
 					<Description><![CDATA[According to the machine type return the number of required production days.]]></Description>
-					<X>650</X><Y>50</Y>
+					<X>510</X><Y>50</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if(machineType=="lt7"){
+					<Body><![CDATA[if(machineType.equals("lt7")){
 	return 28;
-}else if(machineType=="lt8"){
+}else if(machineType.equals("lt8")){
 	return 28;
 }
 return 0;]]></Body>
@@ -22275,12 +23052,12 @@ return 0;]]></Body>
 						<Name><![CDATA[simulationDay]]></Name>
 						<Type><![CDATA[int]]></Type>
 					</Parameter>
-					<Body><![CDATA[if(machineType=="lt7"){
+					<Body><![CDATA[if(machineType.equals("lt7")){
 	if(simulationDay>=date_basement_arrival){
 		return true;
 	}
 	return false;
-}else if(machineType=="lt8"){
+}else if(machineType.equals("lt8")){
 	if(simulationDay>=date_basement_arrival){
 		return true;
 	}
@@ -22303,7 +23080,7 @@ return true;]]></Body>
 						<Name><![CDATA[simulationDay]]></Name>
 						<Type><![CDATA[int]]></Type>
 					</Parameter>
-					<Body><![CDATA[if(machineType=="lt7"){
+					<Body><![CDATA[if(machineType.equals("lt7")){
 	if(simulationDay>=date_electrical_panel_arrival){
 		return true;
 	}
@@ -22311,7 +23088,7 @@ return true;]]></Body>
 		return true;
 	}
 	return false;
-}else if(machineType=="lt8"){
+}else if(machineType.equals("lt8")){
 	if(simulationDay>=date_electrical_panel_arrival){
 		return true;
 	}
@@ -23490,6 +24267,18 @@ return true;]]></Body>
 				<Parameter>
 					<ParameterName><![CDATA[totalAvailableR]]></ParameterName>
 				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[ordersFromFile]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[connectToOpt]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[adigeSetup]]></ParameterName>
+				</Parameter>
+				<Parameter>
+					<ParameterName><![CDATA[ordersFilePath]]></ParameterName>
+				</Parameter>
 			</Parameters>			
 			<PresentationProperties>
 				<EnableZoomAndPanning>true</EnableZoomAndPanning>
@@ -23871,10 +24660,199 @@ public class Piazzola implements Serializable {
 
 }]]></Text>
 		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1722244158908</Id>
+			<Name><![CDATA[AdigeSetup]]></Name>
+			<Text><![CDATA[/**
+ * AdigeSetup
+ */	
+public class AdigeSetup implements Serializable {
+	
+	// file path of the input file where all the orders are listed
+	private String datasetFilePath ;
+	
+	// available human resources
+	private int totalAvailableM;
+	private int totalAvailableE;
+	private int totalAvailableR;
+	
+	// order priorities
+	private Map<Integer, Integer> priority;
+	
+    /**
+     * Default constructor
+     */
+    public AdigeSetup() {
+    	this.priority = new HashMap<>();
+    }
+    
+    public String getDatasetFilePath() {
+        return datasetFilePath;
+    }
+
+    public void setDatasetFilePath(String datasetFilePath) {
+        this.datasetFilePath = datasetFilePath;
+    }
+
+    public int getTotalAvailableM() {
+        return totalAvailableM;
+    }
+
+    public void setTotalAvailableM(int totalAvailableM) {
+        this.totalAvailableM = totalAvailableM;
+    }
+
+    public int getTotalAvailableE() {
+        return totalAvailableE;
+    }
+
+    public void setTotalAvailableE(int totalAvailableE) {
+        this.totalAvailableE = totalAvailableE;
+    }
+
+    public int getTotalAvailableR() {
+        return totalAvailableR;
+    }
+
+    public void setTotalAvailableR(int totalAvailableR) {
+        this.totalAvailableR = totalAvailableR;
+    }
+    
+    public void setPriority(int key, int value) {
+        this.priority.put(key, value);
+    }
+
+    public int getPriorityValue(int key) {
+        return this.priority.get(key);
+    }
+    
+	@Override
+	public String toString() {
+		return super.toString();
+	}
+
+	/**
+	 * This number is here for model snapshot storing purpose<br>
+	 * It needs to be changed when this class gets changed
+	 */ 
+	private static final long serialVersionUID = 1L;
+
+}]]></Text>
+		</JavaClass>
+		<!--   =========   Java Class   ========  -->
+		<JavaClass>
+			<Id>1722247106440</Id>
+			<Name><![CDATA[AdigeOutput]]></Name>
+			<Text><![CDATA[/**
+ * AdigeOutput
+ */	
+public class AdigeOutput implements Serializable {
+	private final int makespan;
+	
+    /**
+     * Default constructor
+     */
+    public AdigeOutput(Main adigeModel) {
+    	this.makespan = adigeModel.makespan;
+    }
+    
+    public double getMakespan() {
+    	return makespan;
+    }
+
+	@Override
+	public String toString() {
+		return super.toString();
+	}
+
+	/**
+	 * This number is here for model snapshot storing purpose<br>
+	 * It needs to be changed when this class gets changed
+	 */ 
+	private static final long serialVersionUID = 1L;
+
+}]]></Text>
+		</JavaClass>
 	</JavaClasses>
 	<ModelResources>
 		<Resource>
 			<Path><![CDATA[json-simple-1.1.1.jar]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+			<Location>FILE_SYSTEM</Location>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[opencsv-5.9.jar]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+			<Location>FILE_SYSTEM</Location>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[unirest-java-3.14.1.jar]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+			<Location>FILE_SYSTEM</Location>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[gson-2.9.0.jar]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+			<Location>FILE_SYSTEM</Location>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[junit-4.12.jar]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+			<Location>FILE_SYSTEM</Location>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[httpcore-4.4.13.jar]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+			<Location>FILE_SYSTEM</Location>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[commons-codec-1.15.jar]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+			<Location>FILE_SYSTEM</Location>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[httpcore-nio-4.4.13.jar]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+			<Location>FILE_SYSTEM</Location>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[httpclient-4.5.13.jar]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+			<Location>FILE_SYSTEM</Location>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[slf4j-api-1.7.25.jar]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+			<Location>FILE_SYSTEM</Location>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[httpmime-4.5.13.jar]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+			<Location>FILE_SYSTEM</Location>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[hamcrest-core-1.3.jar]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+			<Location>FILE_SYSTEM</Location>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[commons-cli-1.3.1.jar]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+			<Location>FILE_SYSTEM</Location>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[commons-logging-1.2.jar]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+			<Location>FILE_SYSTEM</Location>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[py4j0.10.7.jar]]></Path>
+			<ReferencedFromUserCode>false</ReferencedFromUserCode>
+			<Location>FILE_SYSTEM</Location>
+		</Resource>
+		<Resource>
+			<Path><![CDATA[httpasyncclient-4.1.5.jar]]></Path>
 			<ReferencedFromUserCode>false</ReferencedFromUserCode>
 			<Location>FILE_SYSTEM</Location>
 		</Resource>
@@ -23891,10 +24869,136 @@ public class Piazzola implements Serializable {
 		<VersionMinor>0</VersionMinor>
 		<VersionBuild>5</VersionBuild>
     </RequiredLibraryReference>
+    <RequiredLibraryReference>
+		<LibraryName><![CDATA[com.alpype]]></LibraryName>
+		<VersionMajor>1</VersionMajor>
+		<VersionMinor>0</VersionMinor>
+		<VersionBuild>0</VersionBuild>
+    </RequiredLibraryReference>
 	<ClassPathEntry>
 		<ResourceReference>
 			<PackageName><![CDATA[adige]]></PackageName>
 			<ClassName><![CDATA[json-simple-1.1.1.jar]]></ClassName>
+		</ResourceReference>
+		<Imported>true</Imported>
+		<Folder>false</Folder>
+	</ClassPathEntry>
+	<ClassPathEntry>
+		<ResourceReference>
+			<PackageName><![CDATA[adige]]></PackageName>
+			<ClassName><![CDATA[opencsv-5.9.jar]]></ClassName>
+		</ResourceReference>
+		<Imported>true</Imported>
+		<Folder>false</Folder>
+	</ClassPathEntry>
+	<ClassPathEntry>
+		<ResourceReference>
+			<PackageName><![CDATA[adige]]></PackageName>
+			<ClassName><![CDATA[commons-cli-1.3.1.jar]]></ClassName>
+		</ResourceReference>
+		<Imported>true</Imported>
+		<Folder>false</Folder>
+	</ClassPathEntry>
+	<ClassPathEntry>
+		<ResourceReference>
+			<PackageName><![CDATA[adige]]></PackageName>
+			<ClassName><![CDATA[commons-codec-1.15.jar]]></ClassName>
+		</ResourceReference>
+		<Imported>true</Imported>
+		<Folder>false</Folder>
+	</ClassPathEntry>
+	<ClassPathEntry>
+		<ResourceReference>
+			<PackageName><![CDATA[adige]]></PackageName>
+			<ClassName><![CDATA[commons-logging-1.2.jar]]></ClassName>
+		</ResourceReference>
+		<Imported>true</Imported>
+		<Folder>false</Folder>
+	</ClassPathEntry>
+	<ClassPathEntry>
+		<ResourceReference>
+			<PackageName><![CDATA[adige]]></PackageName>
+			<ClassName><![CDATA[gson-2.9.0.jar]]></ClassName>
+		</ResourceReference>
+		<Imported>true</Imported>
+		<Folder>false</Folder>
+	</ClassPathEntry>
+	<ClassPathEntry>
+		<ResourceReference>
+			<PackageName><![CDATA[adige]]></PackageName>
+			<ClassName><![CDATA[hamcrest-core-1.3.jar]]></ClassName>
+		</ResourceReference>
+		<Imported>true</Imported>
+		<Folder>false</Folder>
+	</ClassPathEntry>
+	<ClassPathEntry>
+		<ResourceReference>
+			<PackageName><![CDATA[adige]]></PackageName>
+			<ClassName><![CDATA[httpasyncclient-4.1.5.jar]]></ClassName>
+		</ResourceReference>
+		<Imported>true</Imported>
+		<Folder>false</Folder>
+	</ClassPathEntry>
+	<ClassPathEntry>
+		<ResourceReference>
+			<PackageName><![CDATA[adige]]></PackageName>
+			<ClassName><![CDATA[httpclient-4.5.13.jar]]></ClassName>
+		</ResourceReference>
+		<Imported>true</Imported>
+		<Folder>false</Folder>
+	</ClassPathEntry>
+	<ClassPathEntry>
+		<ResourceReference>
+			<PackageName><![CDATA[adige]]></PackageName>
+			<ClassName><![CDATA[httpcore-4.4.13.jar]]></ClassName>
+		</ResourceReference>
+		<Imported>true</Imported>
+		<Folder>false</Folder>
+	</ClassPathEntry>
+	<ClassPathEntry>
+		<ResourceReference>
+			<PackageName><![CDATA[adige]]></PackageName>
+			<ClassName><![CDATA[httpcore-nio-4.4.13.jar]]></ClassName>
+		</ResourceReference>
+		<Imported>true</Imported>
+		<Folder>false</Folder>
+	</ClassPathEntry>
+	<ClassPathEntry>
+		<ResourceReference>
+			<PackageName><![CDATA[adige]]></PackageName>
+			<ClassName><![CDATA[httpmime-4.5.13.jar]]></ClassName>
+		</ResourceReference>
+		<Imported>true</Imported>
+		<Folder>false</Folder>
+	</ClassPathEntry>
+	<ClassPathEntry>
+		<ResourceReference>
+			<PackageName><![CDATA[adige]]></PackageName>
+			<ClassName><![CDATA[junit-4.12.jar]]></ClassName>
+		</ResourceReference>
+		<Imported>true</Imported>
+		<Folder>false</Folder>
+	</ClassPathEntry>
+	<ClassPathEntry>
+		<ResourceReference>
+			<PackageName><![CDATA[adige]]></PackageName>
+			<ClassName><![CDATA[py4j0.10.7.jar]]></ClassName>
+		</ResourceReference>
+		<Imported>true</Imported>
+		<Folder>false</Folder>
+	</ClassPathEntry>
+	<ClassPathEntry>
+		<ResourceReference>
+			<PackageName><![CDATA[adige]]></PackageName>
+			<ClassName><![CDATA[slf4j-api-1.7.25.jar]]></ClassName>
+		</ResourceReference>
+		<Imported>true</Imported>
+		<Folder>false</Folder>
+	</ClassPathEntry>
+	<ClassPathEntry>
+		<ResourceReference>
+			<PackageName><![CDATA[adige]]></PackageName>
+			<ClassName><![CDATA[unirest-java-3.14.1.jar]]></ClassName>
 		</ResourceReference>
 		<Imported>true</Imported>
 		<Folder>false</Folder>

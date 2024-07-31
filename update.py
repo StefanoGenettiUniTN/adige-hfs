@@ -15,16 +15,6 @@ if __name__ == '__main__':
     args = read_arguments()
 
     while True:
-        print("BUONGIORNO AMORE")
-        print("TI AMO")
-        time.sleep(2)
-
-
-
-
-
-
-        """
         # get the current time
         current_time = datetime.now().isoformat()
 
@@ -41,4 +31,3 @@ if __name__ == '__main__':
         
         # wait for 50 seconds before the next update
         time.sleep(50)
-        """

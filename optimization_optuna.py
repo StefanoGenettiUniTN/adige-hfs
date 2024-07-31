@@ -1,0 +1,163 @@
+from typing import List, Dict, Tuple, Set
+from alpypeopt import AnyLogicModel
+from itertools import permutations
+import optuna
+import matplotlib.pyplot as plt
+import csv
+import argparse
+import pandas as pd
+
+def read_arguments():
+    parser = argparse.ArgumentParser(description="Adige hybrid flow shop scheduling optimizer.")
+    
+    parser.add_argument("--input_csv", type=str, help="File path of the CSV where the optimization output has been stored.")
+    parser.add_argument("--n_trials", type=int, default=100, help="Number of optimization trials.")
+
+    parser.add_argument("--m", type=int, default=1, help="Resources of type M.")
+    parser.add_argument("--e", type=int, default=1, help="Resources of type E.")
+    parser.add_argument("--r", type=int, default=1, help="Resources of type R.")
+    parser.add_argument("--dataset", type=str, default="data/d.csv", help="File path with the dataset.")
+
+    args = parser.parse_args()
+    args = vars(args)
+
+    return args
+
+if __name__ == '__main__':
+    args = read_arguments()
+
+    # history of evaluations
+    history_x:List[List[int]] = []
+    history_y:List[int] = []
+
+    if args["input_csv"]:
+        csv_file_path = args["input_csv"]
+        df = pd.read_csv(csv_file_path)
+        plt.figure(figsize=(10, 6))
+        plt.plot(range(len(df["y"])), df["y"], marker='o', linestyle='-', linewidth=1, markersize=4, label='makespan')
+        plt.xlabel('Trial')
+        plt.ylabel('Makespan')
+        plt.title('Fitness Trend')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+    else:
+        adige_model = AnyLogicModel(
+            env_config={
+                'run_exported_model': False
+            }
+        )
+
+        # init design variable setup
+        adige_setup = adige_model.get_jvm().adige.AdigeSetup()
+
+        # read dataset jobs
+        input_jobs: List[int] = list()
+        input_df = pd.read_csv(args["dataset"])
+        input_jobs = input_df["order_id"].tolist()
+
+        def simulation(x: List[int],
+                       totalAvailableM: int,
+                       totalAvailableE: int,
+                       totalAvailableR: int,
+                       datasetFilePath: str,
+                       reset=True):
+            """
+            x : list of jobs in descending priority order
+            totalAvailableM : number of resources of type M available
+            totalAvailableE : number of resources of type E available
+            totalAvailableR : number of resources of type R available
+            datasetFilePath : file path of the csv file storing the dataset
+            """
+            print(f"x={x}")
+
+            # set available resources
+            adige_setup.setTotalAvailableM(totalAvailableM)
+            adige_setup.setTotalAvailableE(totalAvailableE)
+            adige_setup.setTotalAvailableR(totalAvailableR)
+
+            # set dataset file path
+            adige_setup.setDatasetFilePath(datasetFilePath)
+
+            # assign priorities
+            for job_position, job_id in enumerate(x):
+                adige_setup.setPriority(job_id, len(x)-job_position)
+            
+            # pass input setup and run model until end
+            adige_model.setup_and_run(adige_setup)
+            
+            # extract model output or simulation result
+            model_output = adige_model.get_model_output()
+            if reset:
+                # reset simulation model to be ready for next iteration
+                adige_model.reset()
+            
+            return model_output.getMakespan()
+
+        # setup and execute black box optimization model
+        def objective(trial: optuna.trial.Trial,
+                      jobs: List[int],
+                      totalAvailableM: int,
+                      totalAvailableE: int,
+                      totalAvailableR: int,
+                      datasetFilePath: str):
+            priorities = [trial.suggest_int(f'{jobs[i]}', 0, len(jobs)) for i in range(len(jobs))]
+            jobs_with_priorities = list(zip(jobs, priorities))
+            sorted_jobs_with_priorities = sorted(jobs_with_priorities, key=lambda x: x[1], reverse=True)
+            sorted_jobs = [job for job, _ in sorted_jobs_with_priorities]
+            y = simulation(x=sorted_jobs,
+                           totalAvailableM=totalAvailableM,
+                           totalAvailableE=totalAvailableE,
+                           totalAvailableR=totalAvailableR,
+                           datasetFilePath=datasetFilePath)
+            history_x.append(sorted_jobs.copy())
+            history_y.append(int(y))
+            return y
+
+        # run the optimizer
+        study = optuna.create_study(direction="minimize")
+        study.optimize(
+            lambda trial:   objective(  trial=trial,
+                                        jobs=input_jobs,
+                                        totalAvailableM=args["m"],
+                                        totalAvailableE=args["e"],
+                                        totalAvailableR=args["r"],
+                                        datasetFilePath=args["dataset"]),
+                            n_trials=args["n_trials"])
+
+        # print result
+        best = study.best_params
+        print(f"Solution is {best} for a value of {study.best_value}")
+
+        # run simulation with optimal result to use UI to explore results in AnyLogic
+        #best_x = list(best.values())
+        #simulation(x=best_x,
+                   #totalAvailableM=args["m"],
+                   #totalAvailableE=args["e"],
+                   #totalAvailableR=args["r"],
+                   #datasetFilePath=args["dataset"],
+                   #reset=False)
+
+        # solo per test
+        """
+        modelOutput = simulation(x=[50, 96, 64, 43, 79, 56, 71, 8, 49, 55, 1, 6, 29, 88, 82, 83, 84, 59, 95, 13, 31, 47, 86, 22, 33, 39, 34, 68, 15, 44, 35, 89, 26, 4, 48, 81, 91, 74, 98, 45, 28, 78, 57, 93, 0, 9, 24, 76, 77, 17, 12, 30, 97, 5, 46, 2, 18, 25, 16, 20, 41, 42, 23, 21, 52, 94, 37, 70, 63, 54, 38, 40, 58, 60, 32, 10, 61, 69, 62, 87, 19, 67, 80, 85, 92, 99, 7, 27, 65, 75, 72, 14, 3, 53, 36, 66, 90, 11, 51, 73],
+                                totalAvailableM=args["m"],
+                                totalAvailableE=args["e"],
+                                totalAvailableR=args["r"],
+                                datasetFilePath=args["dataset"],
+                                reset=False)
+        print(f"makespan = {modelOutput}")
+        """
+        
+        # close model
+        adige_model.close()
+
+        # store fitness trend history in csv output file
+        csv_file_path = "history_optuna.csv"
+        csv_file = open(csv_file_path, mode='w', newline='')
+        csv_writer = csv.writer(csv_file)
+        csv_writer.writerow(["x", "y"])
+        for x, y in zip(history_x, history_y):
+            csv_writer.writerow([str(x), y])
+        csv_file.close()
+        print(f"Data successfully written to history_optuna.csv")
