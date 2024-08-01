@@ -2421,9 +2421,9 @@ for(int orderId : orderSchedule){
 					<Action><![CDATA[if(dailyUpdateMutex==true){
 	// update sinottico header
 	simulation_day = simulation_day+1;
-	traceln("Day "+simulation_day);
+	////traceln("Day "+simulation_day);
 	sinottico_header.setText("Day "+simulation_day);
-	traceln("");
+	////traceln("");
 	
 	// deallocate resources
 	////traceln("deallocate resources");
@@ -2481,7 +2481,7 @@ for(int orderId : orderSchedule){
 			if(o.inPiazzola==true){
 				// the order is in piazzola. Hence it can be processed
 				Piazzola p = piazzole.get(o.piazzola);
-				traceln("Check order "+o.id+" located in "+p.piazzola);
+				////traceln("Check order "+o.id+" located in "+p.piazzola);
 				if(o.m==0 && o.e==0 && o.r==0){
 					// the order has completed the production day
 					o.productionDay = o.productionDay+1;
@@ -2533,7 +2533,7 @@ for(int orderId : orderSchedule){
 										o.m = o.m-1;
 										o.markParametersAreSet();
 										p.addResource(r.resourceType);
-										traceln("assigned resource M");
+										////traceln("assigned resource M");
 										break;				
 									}
 								}
@@ -2548,7 +2548,7 @@ for(int orderId : orderSchedule){
 										o.e = o.e-1;
 										o.markParametersAreSet();
 										p.addResource(r.resourceType);
-										traceln("assigned resource E");
+										////traceln("assigned resource E");
 										break;				
 									}
 								}
@@ -2563,7 +2563,7 @@ for(int orderId : orderSchedule){
 										o.r = o.r-1;
 										o.markParametersAreSet();
 										p.addResource(r.resourceType);
-										traceln("assigned resource R");
+										////traceln("assigned resource R");
 										break;				
 									}
 								}
@@ -2576,7 +2576,7 @@ for(int orderId : orderSchedule){
 					p.ui_production_day.setText(String.valueOf(o.productionDay));
 					p.setColor(o.getMachineColor());
 					
-					traceln("");
+					////traceln("");
 				}
 			}
 		}else if(o.atLogisticCenter==true && o.delivered==false && o.date_delivery<=simulation_day){
@@ -2904,13 +2904,13 @@ for (Map.Entry<Integer, Lt> entry : orderList) {
 		int csv_date_electrical_panel_arrival = Integer.parseInt(r[3]);
 		int csv_date_delivery = Integer.parseInt(r[4]);
 		
-		traceln("order in file");
-		traceln("csv_order_id: "+csv_order_id);
-		traceln("csv_machine_type: "+csv_machine_type);
-		traceln("csv_date_basement_arrival: "+csv_date_basement_arrival);
-		traceln("csv_date_electrical_panel_arrival: "+csv_date_electrical_panel_arrival);
-		traceln("csv_date_delivery: "+csv_date_delivery);
-		traceln("");
+		////traceln("order in file");
+		////traceln("csv_order_id: "+csv_order_id);
+		////traceln("csv_machine_type: "+csv_machine_type);
+		////traceln("csv_date_basement_arrival: "+csv_date_basement_arrival);
+		////traceln("csv_date_electrical_panel_arrival: "+csv_date_electrical_panel_arrival);
+		////traceln("csv_date_delivery: "+csv_date_delivery);
+		////traceln("");
 		
 		int csv_order_priority = 1;
 		// assign order priority reading optimizer's design variables
@@ -2954,7 +2954,7 @@ for (Map.Entry<Integer, Lt> entry : orderList) {
 	// compute order schedule according the order priorities
 	getSchedule();
 	
-	traceln("order schedule: ");
+	////traceln("order schedule: ");
 	for(int o : orderSchedule){
 		trace(o+" -");
 	}
@@ -2965,7 +2965,7 @@ for (Map.Entry<Integer, Lt> entry : orderList) {
 	dailyUpdateMutex = true;    
     
     // everything went fine!
-    traceln("setupAndRun completed");
+    ////traceln("setupAndRun completed");
     return true;
 
 } catch (Exception e) {
@@ -3627,7 +3627,7 @@ agent.productionDay = agent.productionDay+1;]]></Code>
 						<Parameter>
 							<Name><![CDATA[onEnter]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[traceln("resource "+agent.resourceType+" deallocated");]]></Code>
+								<Code><![CDATA[////traceln("resource "+agent.resourceType+" deallocated");]]></Code>
 							</Value>
 						</Parameter>
 						<Parameter>
@@ -4904,8 +4904,8 @@ p.ui_matricola.setText("FINITA");]]></Code>
 						<Parameter>
 							<Name><![CDATA[onEnter]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[traceln("Order "+agent.id+" start");
-traceln("Delivery date: "+agent.date_delivery);]]></Code>
+								<Code><![CDATA[////traceln("Order "+agent.id+" start");
+////traceln("Delivery date: "+agent.date_delivery);]]></Code>
 							</Value>
 						</Parameter>
 						<Parameter>
@@ -5301,8 +5301,8 @@ switch(prod_day){
 						<Parameter>
 							<Name><![CDATA[onEnter]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[traceln("Order "+agent.id+" completed.");
-traceln("Delivery date: "+agent.date_delivery);
+								<Code><![CDATA[////traceln("Order "+agent.id+" completed.");
+////traceln("Delivery date: "+agent.date_delivery);
 deliveryAreaMachines.add(agent);]]></Code>
 							</Value>
 						</Parameter>
@@ -6149,7 +6149,7 @@ onTruck.stopDelay(lt);]]></Code>
 								<Code><![CDATA[//iterate over all the orders in the delivery area and choose the order with the highest priority.
 int highestPriority = -1;
 int highestPriorityOrderIndex = -1;
-traceln("truck-deliveryAreaMachines.size()="+deliveryAreaMachines.size());
+////traceln("truck-deliveryAreaMachines.size()="+deliveryAreaMachines.size());
 for(int i=0; i<deliveryAreaMachines.size(); i++){
 	Lt order = deliveryAreaMachines.get(i);
 	if(order.priority>highestPriority){
