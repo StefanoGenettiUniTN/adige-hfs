@@ -19,7 +19,19 @@ if __name__ == '__main__':
     
     order_id = np.arange(args["n"])
 
-    machine_type = np.random.choice(["lt7", "lt8"], args["n"])
+    #machine_type = np.random.choice(["lt7", "lt8"], args["n"])
+    machine_type = np.random.choice(["lt7",
+                                     "lt7_p",
+                                     "lt7_ins",
+                                     "lt7_p_ins",
+                                     "lt8",
+                                     "lt8_p",
+                                     "lt8_ula",
+                                     "lt8_p_ula",
+                                     "lt8_12",
+                                     "lt8_p_12",
+                                     "lt8_12_ula",
+                                     "lt8_p_12_ula",], args["n"])
 
     date_basement_arrival = np.random.randint(1, 20, args["n"])
     #date_basement_arrival = np.full(args["n"], 1)

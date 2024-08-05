@@ -147,7 +147,7 @@ if(connectToOpt==true){
 	
 	// READ ORDERS FROM CSV
 	if(ordersFromFile==true){
-		ordersFilePath = "data/d4.csv";
+		ordersFilePath = "data/d.csv";
 		try{
 			CSVReader reader = new CSVReader(new FileReader(ordersFilePath));
 			List<String[]> records = reader.readAll();
@@ -169,7 +169,7 @@ if(connectToOpt==true){
 				traceln("");
 				
 				//int csv_order_priority = 1;
-				int csv_order_priority = 1000-csv_order_id;
+				int csv_order_priority = csv_order_id;
 							
 				// add the order to the orders collection
 				Lt csv_lt = new Lt();
@@ -598,7 +598,7 @@ if(connectToOpt==true){
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[1]]></Code>
+							<Code><![CDATA[2]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1721902097087</Id>
@@ -622,7 +622,7 @@ if(connectToOpt==true){
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[1]]></Code>
+							<Code><![CDATA[2]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1721902120206</Id>
@@ -646,7 +646,7 @@ if(connectToOpt==true){
 						<UnitType><![CDATA[NONE]]></UnitType>
 						<SdArray>false</SdArray>
 						<DefaultValue Class="CodeValue">
-							<Code><![CDATA[1]]></Code>
+							<Code><![CDATA[2]]></Code>
 						</DefaultValue>
 						<ParameterEditor>
 							<Id>1721902128873</Id>
@@ -2493,6 +2493,9 @@ for(int orderId : orderSchedule){
 				}
 			
 				if(o.completed==false){
+					// update order requirements
+					o.updateMachineRequirements();
+					
 					// update basement and electrical panel flags
 					if(simulation_day>=o.date_basement_arrival){
 						p.ui_basement_flag.setFillColor(green);
@@ -2504,10 +2507,7 @@ for(int orderId : orderSchedule){
 					// check basement and electrical panel flags
 					// if the machine production requires the arrival of the basement or electric panel
 					// for the current stage, we have to wait
-					if(o.checkBasement(simulation_day)==true && o.checkBasement(simulation_day)==true){
-						// update order requirements
-						o.updateMachineRequirements();
-						
+					if(o.checkBasement(simulation_day)==true && o.checkElectricalPanel(simulation_day)==true){
 						////traceln("order requirements:");
 						
 						// check whether we can go on with the order given the current available resources
@@ -6503,7 +6503,7 @@ if(agent.transportedLt_id != -1){
 						<Parameter>
 							<Name><![CDATA[condition]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[agent.transportedLt_type.equals("lt7")]]></Code>
+								<Code><![CDATA[agent.transportedLt_type.equals("lt7") || agent.transportedLt_type.equals("lt7_p") || agent.transportedLt_type.equals("lt7_ins") || agent.transportedLt_type.equals("lt7_p_ins")]]></Code>
 							</Value>
 						</Parameter>
 						<Parameter>
@@ -6590,7 +6590,7 @@ if(agent.transportedLt_id != -1){
 						<Parameter>
 							<Name><![CDATA[condition]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[agent.transportedLt_type.equals("lt8")]]></Code>
+								<Code><![CDATA[agent.transportedLt_type.equals("lt8") || agent.transportedLt_type.equals("lt8_p") || agent.transportedLt_type.equals("lt8_ula") || agent.transportedLt_type.equals("lt8_p_ula") || agent.transportedLt_type.equals("lt8_12") || agent.transportedLt_type.equals("lt8_p_12") || agent.transportedLt_type.equals("lt8_12_ula") || agent.transportedLt_type.equals("lt8_p_12_ula")]]></Code>
 							</Value>
 						</Parameter>
 						<Parameter>
@@ -7127,7 +7127,7 @@ onTruck.stopDelay(lt);]]></Code>
 						<Parameter>
 							<Name><![CDATA[condition]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[agent.machineType.equals("lt7")]]></Code>
+								<Code><![CDATA[agent.machineType.equals("lt7") || agent.machineType.equals("lt7_p") || agent.machineType.equals("lt7_ins") || agent.machineType.equals("lt7_p_ins")]]></Code>
 							</Value>
 						</Parameter>
 						<Parameter>
@@ -7214,7 +7214,7 @@ onTruck.stopDelay(lt);]]></Code>
 						<Parameter>
 							<Name><![CDATA[condition]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[agent.machineType.equals("lt8")]]></Code>
+								<Code><![CDATA[agent.machineType.equals("lt8") || agent.machineType.equals("lt8_p") || agent.machineType.equals("lt8_ula") || agent.machineType.equals("lt8_p_ula") || agent.machineType.equals("lt8_12") || agent.machineType.equals("lt8_p_12") || agent.machineType.equals("lt8_12_ula") || agent.machineType.equals("lt8_p_12_ula")]]></Code>
 							</Value>
 						</Parameter>
 						<Parameter>
@@ -14916,7 +14916,8 @@ lt7.set_checklist_operation_id(placeholder);
 lt7.set_data_collector_id(placeholder);
 lt7.set_priority(orderAutoincrementId);
 lt7.set_date_delivery(20*orderAutoincrementId);
-lt7.set_date_basement_arrival(5);
+lt7.set_date_basement_arrival(1);
+lt7.set_date_electrical_panel_arrival(10);
 
 // assign the next available piazzola to the order
 ////lt7.piazzola = getNextAvailablePiazzola();
@@ -14999,7 +15000,8 @@ lt8.set_checklist_operation_id(placeholder);
 lt8.set_data_collector_id(placeholder);
 lt8.set_priority(orderAutoincrementId);
 lt8.set_date_delivery(30*orderAutoincrementId);
-lt8.set_date_basement_arrival(10);
+lt8.set_date_basement_arrival(1);
+lt8.set_date_electrical_panel_arrival(10);
 
 // assign the next available piazzola to the order
 ////lt8.piazzola = getNextAvailablePiazzola();
@@ -21809,6 +21811,626 @@ src_lt.take(lt8);]]></ActionCode>
 					</Font>
 					<Alignment>CENTER</Alignment>
 				</Text>
+				<Control Type="Button">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1722519996923</Id>
+					<Name><![CDATA[lt7_p]]></Name>
+					<X>560</X><Y>1200</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[Lt lt7_p = new Lt();
+
+// set order unique integer identifier
+lt7_p.id = orderAutoincrementId;
+
+// set machine type
+lt7_p.machineType = "lt7_p";
+
+// init production day
+lt7_p.productionDay = 1;
+
+// set other order details
+String placeholder = "undefined";
+lt7_p.set_wkc_status_id(placeholder);
+lt7_p.set_odv(placeholder);
+lt7_p.set_matricola("LT7_P "+lt7_p.id);
+lt7_p.set_data_inizio("2024-07-05T07:17:41");
+lt7_p.set_data_spedizione("2024-07-05T07:17:41");
+lt7_p.set_avanzamento("0");
+lt7_p.set_color_avanz(placeholder);
+lt7_p.set_data_fine_prevista("2024-07-05T07:17:41");
+lt7_p.set_data_obiettivo("2024-07-05T07:17:41");
+lt7_p.set_stato_avanz(placeholder);
+lt7_p.set_data_ultimo_aggiornamento("2024-07-05T07:17:41");
+lt7_p.set_stato_macchina(placeholder);
+lt7_p.set_stato(placeholder);
+lt7_p.set_app_strong(placeholder);
+lt7_p.set_parameter_description(placeholder);
+lt7_p.set_parameter_value(placeholder);
+lt7_p.set_checklist_id(placeholder);
+lt7_p.set_checklist_operation_id(placeholder);
+lt7_p.set_data_collector_id(placeholder);
+lt7_p.set_priority(orderAutoincrementId);
+lt7_p.set_date_delivery(30*orderAutoincrementId);
+lt7_p.set_date_basement_arrival(1);
+lt7_p.set_date_electrical_panel_arrival(10);
+
+orderAutoincrementId = orderAutoincrementId+1;
+orders.put(lt7_p.id, lt7_p);
+getSchedule();	// DA NON METTERE QUANDO SI LEGGE DA FILE!!
+lt7_p.markParametersAreSet();
+src_lt.take(lt7_p);]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[LT7_P]]></LabelText>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Button">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1722520014406</Id>
+					<Name><![CDATA[lt8_p]]></Name>
+					<X>690</X><Y>1200</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[Lt lt8_p = new Lt();
+
+// set order unique integer identifier
+lt8_p.id = orderAutoincrementId;
+
+// set machine type
+lt8_p.machineType = "lt8_p";
+
+// init production day
+lt8_p.productionDay = 1;
+
+// set other order details
+String placeholder = "undefined";
+lt8_p.set_wkc_status_id(placeholder);
+lt8_p.set_odv(placeholder);
+lt8_p.set_matricola("LT8 P"+lt8_p.id);
+lt8_p.set_data_inizio("2024-07-05T07:17:41");
+lt8_p.set_data_spedizione("2024-07-05T07:17:41");
+lt8_p.set_avanzamento("0");
+lt8_p.set_color_avanz(placeholder);
+lt8_p.set_data_fine_prevista("2024-07-05T07:17:41");
+lt8_p.set_data_obiettivo("2024-07-05T07:17:41");
+lt8_p.set_stato_avanz(placeholder);
+lt8_p.set_data_ultimo_aggiornamento("2024-07-05T07:17:41");
+lt8_p.set_stato_macchina(placeholder);
+lt8_p.set_stato(placeholder);
+lt8_p.set_app_strong(placeholder);
+lt8_p.set_parameter_description(placeholder);
+lt8_p.set_parameter_value(placeholder);
+lt8_p.set_checklist_id(placeholder);
+lt8_p.set_checklist_operation_id(placeholder);
+lt8_p.set_data_collector_id(placeholder);
+lt8_p.set_priority(orderAutoincrementId);
+lt8_p.set_date_delivery(30*orderAutoincrementId);
+lt8_p.set_date_basement_arrival(1);
+lt8_p.set_date_electrical_panel_arrival(10);
+
+orderAutoincrementId = orderAutoincrementId+1;
+orders.put(lt8_p.id, lt8_p);
+getSchedule();	// DA NON METTERE QUANDO SI LEGGE DA FILE!!
+lt8_p.markParametersAreSet();
+src_lt.take(lt8_p);]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[LT8_P]]></LabelText>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Button">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1722520018095</Id>
+					<Name><![CDATA[lt7_ins]]></Name>
+					<X>820</X><Y>1200</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[Lt lt7_ins = new Lt();
+
+// set order unique integer identifier
+lt7_ins.id = orderAutoincrementId;
+
+// set machine type
+lt7_ins.machineType = "lt7_ins";
+
+// init production day
+lt7_ins.productionDay = 1;
+
+// set other order details
+String placeholder = "undefined";
+lt7_ins.set_wkc_status_id(placeholder);
+lt7_ins.set_odv(placeholder);
+lt7_ins.set_matricola("LT7 INS."+lt7_ins.id);
+lt7_ins.set_data_inizio("2024-07-05T07:17:41");
+lt7_ins.set_data_spedizione("2024-07-05T07:17:41");
+lt7_ins.set_avanzamento("0");
+lt7_ins.set_color_avanz(placeholder);
+lt7_ins.set_data_fine_prevista("2024-07-05T07:17:41");
+lt7_ins.set_data_obiettivo("2024-07-05T07:17:41");
+lt7_ins.set_stato_avanz(placeholder);
+lt7_ins.set_data_ultimo_aggiornamento("2024-07-05T07:17:41");
+lt7_ins.set_stato_macchina(placeholder);
+lt7_ins.set_stato(placeholder);
+lt7_ins.set_app_strong(placeholder);
+lt7_ins.set_parameter_description(placeholder);
+lt7_ins.set_parameter_value(placeholder);
+lt7_ins.set_checklist_id(placeholder);
+lt7_ins.set_checklist_operation_id(placeholder);
+lt7_ins.set_data_collector_id(placeholder);
+lt7_ins.set_priority(orderAutoincrementId);
+lt7_ins.set_date_delivery(30*orderAutoincrementId);
+lt7_ins.set_date_basement_arrival(1);
+lt7_ins.set_date_electrical_panel_arrival(10);
+
+orderAutoincrementId = orderAutoincrementId+1;
+orders.put(lt7_ins.id, lt7_ins);
+getSchedule();	// DA NON METTERE QUANDO SI LEGGE DA FILE!!
+lt7_ins.markParametersAreSet();
+src_lt.take(lt7_ins);]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[LT7 INS.]]></LabelText>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Button">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1722520021401</Id>
+					<Name><![CDATA[lt7_p_ins]]></Name>
+					<X>950</X><Y>1200</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[Lt lt7_p_ins = new Lt();
+
+// set order unique integer identifier
+lt7_p_ins.id = orderAutoincrementId;
+
+// set machine type
+lt7_p_ins.machineType = "lt7_p_ins";
+
+// init production day
+lt7_p_ins.productionDay = 1;
+
+// set other order details
+String placeholder = "undefined";
+lt7_p_ins.set_wkc_status_id(placeholder);
+lt7_p_ins.set_odv(placeholder);
+lt7_p_ins.set_matricola("LT7 P INS."+lt7_p_ins.id);
+lt7_p_ins.set_data_inizio("2024-07-05T07:17:41");
+lt7_p_ins.set_data_spedizione("2024-07-05T07:17:41");
+lt7_p_ins.set_avanzamento("0");
+lt7_p_ins.set_color_avanz(placeholder);
+lt7_p_ins.set_data_fine_prevista("2024-07-05T07:17:41");
+lt7_p_ins.set_data_obiettivo("2024-07-05T07:17:41");
+lt7_p_ins.set_stato_avanz(placeholder);
+lt7_p_ins.set_data_ultimo_aggiornamento("2024-07-05T07:17:41");
+lt7_p_ins.set_stato_macchina(placeholder);
+lt7_p_ins.set_stato(placeholder);
+lt7_p_ins.set_app_strong(placeholder);
+lt7_p_ins.set_parameter_description(placeholder);
+lt7_p_ins.set_parameter_value(placeholder);
+lt7_p_ins.set_checklist_id(placeholder);
+lt7_p_ins.set_checklist_operation_id(placeholder);
+lt7_p_ins.set_data_collector_id(placeholder);
+lt7_p_ins.set_priority(orderAutoincrementId);
+lt7_p_ins.set_date_delivery(30*orderAutoincrementId);
+lt7_p_ins.set_date_basement_arrival(1);
+lt7_p_ins.set_date_electrical_panel_arrival(10);
+
+orderAutoincrementId = orderAutoincrementId+1;
+orders.put(lt7_p_ins.id, lt7_p_ins);
+getSchedule();	// DA NON METTERE QUANDO SI LEGGE DA FILE!!
+lt7_p_ins.markParametersAreSet();
+src_lt.take(lt7_p_ins);]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[LT7_P INS.]]></LabelText>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Button">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1722520027839</Id>
+					<Name><![CDATA[lt8_p_12_ula]]></Name>
+					<X>950</X><Y>1250</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[Lt lt8_p_12_ula = new Lt();
+
+// set order unique integer identifier
+lt8_p_12_ula.id = orderAutoincrementId;
+
+// set machine type
+lt8_p_12_ula.machineType = "lt8_p_12_ula";
+
+// init production day
+lt8_p_12_ula.productionDay = 1;
+
+// set other order details
+String placeholder = "undefined";
+lt8_p_12_ula.set_wkc_status_id(placeholder);
+lt8_p_12_ula.set_odv(placeholder);
+lt8_p_12_ula.set_matricola("LT8 P 12 ULA"+lt8_p_12_ula.id);
+lt8_p_12_ula.set_data_inizio("2024-07-05T07:17:41");
+lt8_p_12_ula.set_data_spedizione("2024-07-05T07:17:41");
+lt8_p_12_ula.set_avanzamento("0");
+lt8_p_12_ula.set_color_avanz(placeholder);
+lt8_p_12_ula.set_data_fine_prevista("2024-07-05T07:17:41");
+lt8_p_12_ula.set_data_obiettivo("2024-07-05T07:17:41");
+lt8_p_12_ula.set_stato_avanz(placeholder);
+lt8_p_12_ula.set_data_ultimo_aggiornamento("2024-07-05T07:17:41");
+lt8_p_12_ula.set_stato_macchina(placeholder);
+lt8_p_12_ula.set_stato(placeholder);
+lt8_p_12_ula.set_app_strong(placeholder);
+lt8_p_12_ula.set_parameter_description(placeholder);
+lt8_p_12_ula.set_parameter_value(placeholder);
+lt8_p_12_ula.set_checklist_id(placeholder);
+lt8_p_12_ula.set_checklist_operation_id(placeholder);
+lt8_p_12_ula.set_data_collector_id(placeholder);
+lt8_p_12_ula.set_priority(orderAutoincrementId);
+lt8_p_12_ula.set_date_delivery(30*orderAutoincrementId);
+lt8_p_12_ula.set_date_basement_arrival(1);
+lt8_p_12_ula.set_date_electrical_panel_arrival(10);
+
+orderAutoincrementId = orderAutoincrementId+1;
+orders.put(lt8_p_12_ula.id, lt8_p_12_ula);
+getSchedule();	// DA NON METTERE QUANDO SI LEGGE DA FILE!!
+lt8_p_12_ula.markParametersAreSet();
+src_lt.take(lt8_p_12_ula);]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[LT8_P 12+ULA]]></LabelText>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Button">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1722520031495</Id>
+					<Name><![CDATA[lt8_12_ula]]></Name>
+					<X>820</X><Y>1250</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[Lt lt8_12_ula = new Lt();
+
+// set order unique integer identifier
+lt8_12_ula.id = orderAutoincrementId;
+
+// set machine type
+lt8_12_ula.machineType = "lt8_12_ula";
+
+// init production day
+lt8_12_ula.productionDay = 1;
+
+// set other order details
+String placeholder = "undefined";
+lt8_12_ula.set_wkc_status_id(placeholder);
+lt8_12_ula.set_odv(placeholder);
+lt8_12_ula.set_matricola("LT8 12.5 ULA"+lt8_12_ula.id);
+lt8_12_ula.set_data_inizio("2024-07-05T07:17:41");
+lt8_12_ula.set_data_spedizione("2024-07-05T07:17:41");
+lt8_12_ula.set_avanzamento("0");
+lt8_12_ula.set_color_avanz(placeholder);
+lt8_12_ula.set_data_fine_prevista("2024-07-05T07:17:41");
+lt8_12_ula.set_data_obiettivo("2024-07-05T07:17:41");
+lt8_12_ula.set_stato_avanz(placeholder);
+lt8_12_ula.set_data_ultimo_aggiornamento("2024-07-05T07:17:41");
+lt8_12_ula.set_stato_macchina(placeholder);
+lt8_12_ula.set_stato(placeholder);
+lt8_12_ula.set_app_strong(placeholder);
+lt8_12_ula.set_parameter_description(placeholder);
+lt8_12_ula.set_parameter_value(placeholder);
+lt8_12_ula.set_checklist_id(placeholder);
+lt8_12_ula.set_checklist_operation_id(placeholder);
+lt8_12_ula.set_data_collector_id(placeholder);
+lt8_12_ula.set_priority(orderAutoincrementId);
+lt8_12_ula.set_date_delivery(30*orderAutoincrementId);
+lt8_12_ula.set_date_basement_arrival(1);
+lt8_12_ula.set_date_electrical_panel_arrival(10);
+
+orderAutoincrementId = orderAutoincrementId+1;
+orders.put(lt8_12_ula.id, lt8_12_ula);
+getSchedule();	// DA NON METTERE QUANDO SI LEGGE DA FILE!!
+lt8_12_ula.markParametersAreSet();
+src_lt.take(lt8_12_ula);]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[LT8 12+ULA]]></LabelText>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Button">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1722520034153</Id>
+					<Name><![CDATA[lt8_ula]]></Name>
+					<X>300</X><Y>1250</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[Lt lt8_ula = new Lt();
+
+// set order unique integer identifier
+lt8_ula.id = orderAutoincrementId;
+
+// set machine type
+lt8_ula.machineType = "lt8_ula";
+
+// init production day
+lt8_ula.productionDay = 1;
+
+// set other order details
+String placeholder = "undefined";
+lt8_ula.set_wkc_status_id(placeholder);
+lt8_ula.set_odv(placeholder);
+lt8_ula.set_matricola("LT8 ULA"+lt8_ula.id);
+lt8_ula.set_data_inizio("2024-07-05T07:17:41");
+lt8_ula.set_data_spedizione("2024-07-05T07:17:41");
+lt8_ula.set_avanzamento("0");
+lt8_ula.set_color_avanz(placeholder);
+lt8_ula.set_data_fine_prevista("2024-07-05T07:17:41");
+lt8_ula.set_data_obiettivo("2024-07-05T07:17:41");
+lt8_ula.set_stato_avanz(placeholder);
+lt8_ula.set_data_ultimo_aggiornamento("2024-07-05T07:17:41");
+lt8_ula.set_stato_macchina(placeholder);
+lt8_ula.set_stato(placeholder);
+lt8_ula.set_app_strong(placeholder);
+lt8_ula.set_parameter_description(placeholder);
+lt8_ula.set_parameter_value(placeholder);
+lt8_ula.set_checklist_id(placeholder);
+lt8_ula.set_checklist_operation_id(placeholder);
+lt8_ula.set_data_collector_id(placeholder);
+lt8_ula.set_priority(orderAutoincrementId);
+lt8_ula.set_date_delivery(30*orderAutoincrementId);
+lt8_ula.set_date_basement_arrival(1);
+lt8_ula.set_date_electrical_panel_arrival(10);
+
+orderAutoincrementId = orderAutoincrementId+1;
+orders.put(lt8_ula.id, lt8_ula);
+getSchedule();	// DA NON METTERE QUANDO SI LEGGE DA FILE!!
+lt8_ula.markParametersAreSet();
+src_lt.take(lt8_ula);]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[LT8 ULA]]></LabelText>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Button">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1722520036799</Id>
+					<Name><![CDATA[lt8_p_12]]></Name>
+					<X>690</X><Y>1250</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[Lt lt8_p_12 = new Lt();
+
+// set order unique integer identifier
+lt8_p_12.id = orderAutoincrementId;
+
+// set machine type
+lt8_p_12.machineType = "lt8_p_12";
+
+// init production day
+lt8_p_12.productionDay = 1;
+
+// set other order details
+String placeholder = "undefined";
+lt8_p_12.set_wkc_status_id(placeholder);
+lt8_p_12.set_odv(placeholder);
+lt8_p_12.set_matricola("LT8 P 12.5"+lt8_p_12.id);
+lt8_p_12.set_data_inizio("2024-07-05T07:17:41");
+lt8_p_12.set_data_spedizione("2024-07-05T07:17:41");
+lt8_p_12.set_avanzamento("0");
+lt8_p_12.set_color_avanz(placeholder);
+lt8_p_12.set_data_fine_prevista("2024-07-05T07:17:41");
+lt8_p_12.set_data_obiettivo("2024-07-05T07:17:41");
+lt8_p_12.set_stato_avanz(placeholder);
+lt8_p_12.set_data_ultimo_aggiornamento("2024-07-05T07:17:41");
+lt8_p_12.set_stato_macchina(placeholder);
+lt8_p_12.set_stato(placeholder);
+lt8_p_12.set_app_strong(placeholder);
+lt8_p_12.set_parameter_description(placeholder);
+lt8_p_12.set_parameter_value(placeholder);
+lt8_p_12.set_checklist_id(placeholder);
+lt8_p_12.set_checklist_operation_id(placeholder);
+lt8_p_12.set_data_collector_id(placeholder);
+lt8_p_12.set_priority(orderAutoincrementId);
+lt8_p_12.set_date_delivery(30*orderAutoincrementId);
+lt8_p_12.set_date_basement_arrival(1);
+lt8_p_12.set_date_electrical_panel_arrival(10);
+
+orderAutoincrementId = orderAutoincrementId+1;
+orders.put(lt8_p_12.id, lt8_p_12);
+getSchedule();	// DA NON METTERE QUANDO SI LEGGE DA FILE!!
+lt8_p_12.markParametersAreSet();
+src_lt.take(lt8_p_12);]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[LT8_P 12.5]]></LabelText>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Button">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1722520039333</Id>
+					<Name><![CDATA[lt8_p_ula]]></Name>
+					<X>430</X><Y>1250</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[Lt lt8_p_ula = new Lt();
+
+// set order unique integer identifier
+lt8_p_ula.id = orderAutoincrementId;
+
+// set machine type
+lt8_p_ula.machineType = "lt8_p_ula";
+
+// init production day
+lt8_p_ula.productionDay = 1;
+
+// set other order details
+String placeholder = "undefined";
+lt8_p_ula.set_wkc_status_id(placeholder);
+lt8_p_ula.set_odv(placeholder);
+lt8_p_ula.set_matricola("LT8 P ULA"+lt8_p_ula.id);
+lt8_p_ula.set_data_inizio("2024-07-05T07:17:41");
+lt8_p_ula.set_data_spedizione("2024-07-05T07:17:41");
+lt8_p_ula.set_avanzamento("0");
+lt8_p_ula.set_color_avanz(placeholder);
+lt8_p_ula.set_data_fine_prevista("2024-07-05T07:17:41");
+lt8_p_ula.set_data_obiettivo("2024-07-05T07:17:41");
+lt8_p_ula.set_stato_avanz(placeholder);
+lt8_p_ula.set_data_ultimo_aggiornamento("2024-07-05T07:17:41");
+lt8_p_ula.set_stato_macchina(placeholder);
+lt8_p_ula.set_stato(placeholder);
+lt8_p_ula.set_app_strong(placeholder);
+lt8_p_ula.set_parameter_description(placeholder);
+lt8_p_ula.set_parameter_value(placeholder);
+lt8_p_ula.set_checklist_id(placeholder);
+lt8_p_ula.set_checklist_operation_id(placeholder);
+lt8_p_ula.set_data_collector_id(placeholder);
+lt8_p_ula.set_priority(orderAutoincrementId);
+lt8_p_ula.set_date_delivery(30*orderAutoincrementId);
+lt8_p_ula.set_date_basement_arrival(1);
+lt8_p_ula.set_date_electrical_panel_arrival(10);
+
+orderAutoincrementId = orderAutoincrementId+1;
+orders.put(lt8_p_ula.id, lt8_p_ula);
+getSchedule();	// DA NON METTERE QUANDO SI LEGGE DA FILE!!
+lt8_p_ula.markParametersAreSet();
+src_lt.take(lt8_p_ula);]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[LT8_P ULA]]></LabelText>
+					</ExtendedProperties>
+				</Control>
+				<Control Type="Button">
+				 	<EmbeddedIcon>false</EmbeddedIcon>				
+					<Id>1722520042483</Id>
+					<Name><![CDATA[lt8_12]]></Name>
+					<X>560</X><Y>1250</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<BasicProperties Width="100" Height="30">
+                        <EmbeddedIcon>false</EmbeddedIcon>	
+						<TextColor/>
+						<Enabled>true</Enabled>
+						<ActionCode><![CDATA[Lt lt8_12 = new Lt();
+
+// set order unique integer identifier
+lt8_12.id = orderAutoincrementId;
+
+// set machine type
+lt8_12.machineType = "lt8_12";
+
+// init production day
+lt8_12.productionDay = 1;
+
+// set other order details
+String placeholder = "undefined";
+lt8_12.set_wkc_status_id(placeholder);
+lt8_12.set_odv(placeholder);
+lt8_12.set_matricola("LT8 12.5"+lt8_12.id);
+lt8_12.set_data_inizio("2024-07-05T07:17:41");
+lt8_12.set_data_spedizione("2024-07-05T07:17:41");
+lt8_12.set_avanzamento("0");
+lt8_12.set_color_avanz(placeholder);
+lt8_12.set_data_fine_prevista("2024-07-05T07:17:41");
+lt8_12.set_data_obiettivo("2024-07-05T07:17:41");
+lt8_12.set_stato_avanz(placeholder);
+lt8_12.set_data_ultimo_aggiornamento("2024-07-05T07:17:41");
+lt8_12.set_stato_macchina(placeholder);
+lt8_12.set_stato(placeholder);
+lt8_12.set_app_strong(placeholder);
+lt8_12.set_parameter_description(placeholder);
+lt8_12.set_parameter_value(placeholder);
+lt8_12.set_checklist_id(placeholder);
+lt8_12.set_checklist_operation_id(placeholder);
+lt8_12.set_data_collector_id(placeholder);
+lt8_12.set_priority(orderAutoincrementId);
+lt8_12.set_date_delivery(30*orderAutoincrementId);
+lt8_12.set_date_basement_arrival(1);
+lt8_12.set_date_electrical_panel_arrival(10);
+
+orderAutoincrementId = orderAutoincrementId+1;
+orders.put(lt8_12.id, lt8_12);
+getSchedule();	// DA NON METTERE QUANDO SI LEGGE DA FILE!!
+lt8_12.markParametersAreSet();
+src_lt.take(lt8_12);]]></ActionCode>
+					</BasicProperties>
+					<ExtendedProperties>
+						<Font Name="Dialog" Size="11" Style="0"/>
+						<LabelText><![CDATA[LT8 12.5]]></LabelText>
+					</ExtendedProperties>
+				</Control>
 			</Presentation>
 
 				</Level>
@@ -22793,6 +23415,246 @@ switch(productionDay){
 	default:
 		traceln("FATAL ERROR");
 }
+}else if(machineType.equals("lt7_p")){
+switch(productionDay){
+	case 1:
+		m = 1;e = 0;r = 0;
+		break;
+	case 2:
+		m = 1;e = 0;r = 0;
+		break;
+	case 3:
+		m = 1;e = 1;r = 0;
+		break;
+	case 4:
+		m = 0;e = 1;r = 0;
+		break;
+	case 5:
+		m = 0;e = 1;r = 0;
+		break;
+	case 6:
+		m = 0;e = 1;r = 0;
+		break;
+	case 7:
+		m = 0;e = 1;r = 0;
+		break;
+	case 8:
+		m = 0;e = 2;r = 0;
+		break;
+	case 9:
+		m = 0;e = 2;r = 0;
+		break;
+	case 10:
+		m = 1;e = 1;r = 0;
+		break;
+	case 11:
+		m = 0;e = 2;r = 0;
+		break;
+	case 12:
+		m = 0;e = 2;r = 0;
+		break;
+	case 13:
+		m = 0;e = 2;r = 0;
+		break;
+	case 14:
+		m = 0;e = 2;r = 0;
+		break;
+	case 15:
+		m = 0;e = 2;r = 0;
+		break;
+	case 16:
+		m = 0;e = 0;r = 0;
+		break;
+	case 17:
+		m = 0;e = 0;r = 0;
+		break;
+	case 18:
+		m = 0;e = 0;r = 1;
+		break;
+	case 19:
+		m = 0;e = 0;r = 1;
+		break;
+	case 20:
+		m = 0;e = 0;r = 1;
+		break;
+	case 21:
+		m = 0;e = 0;r = 1;
+		break;
+	default:
+		traceln("FATAL ERROR");
+}
+}else if(machineType.equals("lt7_ins")){
+switch(productionDay){
+	case 1:
+		m = 1;e = 0;r = 0;
+		break;
+	case 2:
+		m = 1;e = 0;r = 0;
+		break;
+	case 3:
+		m = 1;e = 1;r = 0;
+		break;
+	case 4:
+		m = 0;e = 1;r = 0;
+		break;
+	case 5:
+		m = 0;e = 1;r = 0;
+		break;
+	case 6:
+		m = 0;e = 1;r = 0;
+		break;
+	case 7:
+		m = 0;e = 1;r = 0;
+		break;
+	case 8:
+		m = 0;e = 1;r = 0;
+		break;
+	case 9:
+		m = 0;e = 1;r = 0;
+		break;
+	case 10:
+		m = 0;e = 1;r = 0;
+		break;
+	case 11:
+		m = 0;e = 1;r = 0;
+		break;
+	case 12:
+		m = 1;e = 1;r = 0;
+		break;
+	case 13:
+		m = 0;e = 1;r = 0;
+		break;
+	case 14:
+		m = 0;e = 1;r = 0;
+		break;
+	case 15:
+		m = 0;e = 1;r = 0;
+		break;
+	case 16:
+		m = 0;e = 1;r = 0;
+		break;
+	case 17:
+		m = 0;e = 1;r = 0;
+		break;
+	case 18:
+		m = 0;e = 1;r = 0;
+		break;
+	case 19:
+		m = 0;e = 1;r = 0;
+		break;
+	case 20:
+		m = 1;e = 0;r = 0;
+		break;
+	case 21:
+		m = 0;e = 1;r = 0;
+		break;
+	case 22:
+		m = 0;e = 1;r = 0;
+		break;
+	case 23:
+		m = 0;e = 1;r = 0;
+		break;
+	case 24:
+		m = 0;e = 1;r = 0;
+		break;
+	case 25:
+		m = 0;e = 1;r = 0;
+		break;
+	case 26:
+		m = 0;e = 0;r = 0;
+		break;
+	case 27:
+		m = 0;e = 0;r = 0;
+		break;
+	case 28:
+		m = 0;e = 0;r = 1;
+		break;
+	case 29:
+		m = 0;e = 0;r = 1;
+		break;
+	case 30:
+		m = 0;e = 0;r = 1;
+		break;
+	case 31:
+		m = 0;e = 0;r = 1;
+		break;
+	default:
+		traceln("FATAL ERROR");
+}
+}else if(machineType.equals("lt7_p_ins")){
+switch(productionDay){
+	case 1:
+		m = 1;e = 0;r = 0;
+		break;
+	case 2:
+		m = 1;e = 0;r = 0;
+		break;
+	case 3:
+		m = 1;e = 1;r = 0;
+		break;
+	case 4:
+		m = 0;e = 1;r = 0;
+		break;
+	case 5:
+		m = 0;e = 1;r = 0;
+		break;
+	case 6:
+		m = 0;e = 1;r = 0;
+		break;
+	case 7:
+		m = 0;e = 1;r = 0;
+		break;
+	case 8:
+		m = 0;e = 2;r = 0;
+		break;
+	case 9:
+		m = 0;e = 2;r = 0;
+		break;
+	case 10:
+		m = 1;e = 1;r = 0;
+		break;
+	case 11:
+		m = 0;e = 2;r = 0;
+		break;
+	case 12:
+		m = 0;e = 2;r = 0;
+		break;
+	case 13:
+		m = 0;e = 2;r = 0;
+		break;
+	case 14:
+		m = 1;e = 0;r = 0;
+		break;
+	case 15:
+		m = 0;e = 2;r = 0;
+		break;
+	case 16:
+		m = 0;e = 2;r = 0;
+		break;
+	case 17:
+		m = 0;e = 2;r = 0;
+		break;
+	case 18:
+		m = 0;e = 0;r = 0;
+		break;
+	case 19:
+		m = 0;e = 0;r = 0;
+		break;
+	case 20:
+		m = 0;e = 0;r = 1;
+		break;
+	case 21:
+		m = 0;e = 0;r = 1;
+		break;
+	case 22:
+		m = 0;e = 0;r = 1;
+		break;
+	case 23:
+		m = 0;e = 0;r = 1;
+		break;
+	default:
+		traceln("FATAL ERROR");
+}
 }else if(machineType.equals("lt8")){
 switch(productionDay){
 	case 1:
@@ -22882,6 +23744,593 @@ switch(productionDay){
 	default:
 		traceln("FATAL ERROR");
 }
+}else if(machineType.equals("lt8_p")){
+switch(productionDay){
+	case 1:
+		m = 1;e = 0;r = 0;
+		break;
+	case 2:
+		m = 1;e = 1;r = 0;
+		break;
+	case 3:
+		m = 0;e = 1;r = 0;
+		break;
+	case 4:
+		m = 0;e = 1;r = 0;
+		break;
+	case 5:
+		m = 0;e = 1;r = 0;
+		break;
+	case 6:
+		m = 0;e = 2;r = 0;
+		break;
+	case 7:
+		m = 0;e = 2;r = 0;
+		break;
+	case 8:
+		m = 1;e = 1;r = 0;
+		break;
+	case 9:
+		m = 0;e = 2;r = 0;
+		break;
+	case 10:
+		m = 0;e = 2;r = 0;
+		break;
+	case 11:
+		m = 0;e = 2;r = 0;
+		break;
+	case 12:
+		m = 0;e = 2;r = 0;
+		break;
+	case 13:
+		m = 0;e = 2;r = 0;
+		break;
+	case 14:
+		m = 0;e = 1;r = 0;
+		break;
+	case 15:
+		m = 0;e = 0;r = 0;
+		break;
+	case 16:
+		m = 0;e = 0;r = 0;
+		break;
+	case 17:
+		m = 0;e = 0;r = 1;
+		break;
+	case 18:
+		m = 0;e = 0;r = 1;
+		break;
+	case 19:
+		m = 0;e = 0;r = 1;
+		break;
+	case 20:
+		m = 0;e = 0;r = 1;
+		break;
+	case 21:
+		m = 0;e = 0;r = 1;
+		break;
+	default:
+		traceln("FATAL ERROR");
+}
+}else if(machineType.equals("lt8_ula")){
+switch(productionDay){
+	case 1:
+		m = 1;e = 0;r = 0;
+		break;
+	case 2:
+		m = 1;e = 1;r = 0;
+		break;
+	case 3:
+		m = 1;e = 1;r = 0;
+		break;
+	case 4:
+		m = 0;e = 1;r = 0;
+		break;
+	case 5:
+		m = 0;e = 1;r = 0;
+		break;
+	case 6:
+		m = 0;e = 1;r = 0;
+		break;
+	case 7:
+		m = 0;e = 1;r = 0;
+		break;
+	case 8:
+		m = 0;e = 1;r = 0;
+		break;
+	case 9:
+		m = 0;e = 1;r = 0;
+		break;
+	case 10:
+		m = 0;e = 1;r = 0;
+		break;
+	case 11:
+		m = 1;e = 1;r = 0;
+		break;
+	case 12:
+		m = 0;e = 1;r = 0;
+		break;
+	case 13:
+		m = 0;e = 1;r = 0;
+		break;
+	case 14:
+		m = 0;e = 1;r = 0;
+		break;
+	case 15:
+		m = 0;e = 1;r = 0;
+		break;
+	case 16:
+		m = 1;e = 1;r = 0;
+		break;
+	case 17:
+		m = 0;e = 1;r = 0;
+		break;
+	case 18:
+		m = 0;e = 1;r = 0;
+		break;
+	case 19:
+		m = 0;e = 1;r = 0;
+		break;
+	case 20:
+		m = 0;e = 1;r = 0;
+		break;
+	case 21:
+		m = 0;e = 1;r = 0;
+		break;
+	case 22:
+		m = 0;e = 1;r = 0;
+		break;
+	case 23:
+		m = 0;e = 1;r = 0;
+		break;
+	case 24:
+		m = 0;e = 1;r = 0;
+		break;
+	case 25:
+		m = 0;e = 0;r = 0;
+		break;
+	case 26:
+		m = 0;e = 0;r = 0;
+		break;
+	case 27:
+		m = 0;e = 0;r = 1;
+		break;
+	case 28:
+		m = 0;e = 0;r = 1;
+		break;
+	case 29:
+		m = 0;e = 0;r = 1;
+		break;
+	case 30:
+		m = 0;e = 0;r = 1;
+		break;
+	case 31:
+		m = 0;e = 0;r = 1;
+		break;
+	default:
+		traceln("FATAL ERROR");
+}
+}else if(machineType.equals("lt8_p_ula")){
+switch(productionDay){
+	case 1:
+		m = 1;e = 0;r = 0;
+		break;
+	case 2:
+		m = 1;e = 1;r = 0;
+		break;
+	case 3:
+		m = 1;e = 1;r = 0;
+		break;
+	case 4:
+		m = 0;e = 1;r = 0;
+		break;
+	case 5:
+		m = 0;e = 1;r = 0;
+		break;
+	case 6:
+		m = 0;e = 1;r = 0;
+		break;
+	case 7:
+		m = 0;e = 2;r = 0;
+		break;
+	case 8:
+		m = 0;e = 2;r = 0;
+		break;
+	case 9:
+		m = 1;e = 1;r = 0;
+		break;
+	case 10:
+		m = 0;e = 2;r = 0;
+		break;
+	case 11:
+		m = 0;e = 2;r = 0;
+		break;
+	case 12:
+		m = 1;e = 2;r = 0;
+		break;
+	case 13:
+		m = 0;e = 2;r = 0;
+		break;
+	case 14:
+		m = 0;e = 1;r = 0;
+		break;
+	case 15:
+		m = 0;e = 2;r = 0;
+		break;
+	case 16:
+		m = 0;e = 2;r = 0;
+		break;
+	case 17:
+		m = 0;e = 0;r = 0;
+		break;
+	case 18:
+		m = 0;e = 0;r = 0;
+		break;
+	case 19:
+		m = 0;e = 0;r = 1;
+		break;
+	case 20:
+		m = 0;e = 0;r = 1;
+		break;
+	case 21:
+		m = 0;e = 0;r = 1;
+		break;
+	case 22:
+		m = 0;e = 0;r = 1;
+		break;
+	case 23:
+		m = 0;e = 0;r = 1;
+		break;
+	default:
+		traceln("FATAL ERROR");
+}
+}else if(machineType.equals("lt8_12")){
+switch(productionDay){
+	case 1:
+		m = 1;e = 0;r = 0;
+		break;
+	case 2:
+		m = 1;e = 0;r = 0;
+		break;
+	case 3:
+		m = 1;e = 1;r = 0;
+		break;
+	case 4:
+		m = 0;e = 1;r = 0;
+		break;
+	case 5:
+		m = 0;e = 1;r = 0;
+		break;
+	case 6:
+		m = 0;e = 1;r = 0;
+		break;
+	case 7:
+		m = 0;e = 1;r = 0;
+		break;
+	case 8:
+		m = 0;e = 1;r = 0;
+		break;
+	case 9:
+		m = 0;e = 1;r = 0;
+		break;
+	case 10:
+		m = 0;e = 1;r = 0;
+		break;
+	case 11:
+		m = 1;e = 1;r = 0;
+		break;
+	case 12:
+		m = 0;e = 1;r = 0;
+		break;
+	case 13:
+		m = 0;e = 1;r = 0;
+		break;
+	case 14:
+		m = 0;e = 1;r = 0;
+		break;
+	case 15:
+		m = 0;e = 1;r = 0;
+		break;
+	case 16:
+		m = 0;e = 1;r = 0;
+		break;
+	case 17:
+		m = 0;e = 1;r = 0;
+		break;
+	case 18:
+		m = 0;e = 1;r = 0;
+		break;
+	case 19:
+		m = 0;e = 1;r = 0;
+		break;
+	case 20:
+		m = 0;e = 1;r = 0;
+		break;
+	case 21:
+		m = 0;e = 1;r = 0;
+		break;
+	case 22:
+		m = 0;e = 1;r = 0;
+		break;
+	case 23:
+		m = 0;e = 1;r = 0;
+		break;
+	case 24:
+		m = 0;e = 0;r = 0;
+		break;
+	case 25:
+		m = 0;e = 0;r = 0;
+		break;
+	case 26:
+		m = 0;e = 0;r = 1;
+		break;
+	case 27:
+		m = 0;e = 0;r = 1;
+		break;
+	case 28:
+		m = 0;e = 0;r = 1;
+		break;
+	case 29:
+		m = 0;e = 0;r = 1;
+		break;
+	case 30:
+		m = 0;e = 0;r = 1;
+		break;
+	default:
+		traceln("FATAL ERROR");
+}
+}else if(machineType.equals("lt8_p_12")){
+switch(productionDay){
+	case 1:
+		m = 1;e = 0;r = 0;
+		break;
+	case 2:
+		m = 1;e = 0;r = 0;
+		break;
+	case 3:
+		m = 1;e = 1;r = 0;
+		break;
+	case 4:
+		m = 0;e = 1;r = 0;
+		break;
+	case 5:
+		m = 0;e = 1;r = 0;
+		break;
+	case 6:
+		m = 0;e = 1;r = 0;
+		break;
+	case 7:
+		m = 0;e = 2;r = 0;
+		break;
+	case 8:
+		m = 0;e = 2;r = 0;
+		break;
+	case 9:
+		m = 1;e = 1;r = 0;
+		break;
+	case 10:
+		m = 0;e = 2;r = 0;
+		break;
+	case 11:
+		m = 0;e = 2;r = 0;
+		break;
+	case 12:
+		m = 0;e = 2;r = 0;
+		break;
+	case 13:
+		m = 0;e = 2;r = 0;
+		break;
+	case 14:
+		m = 0;e = 2;r = 0;
+		break;
+	case 15:
+		m = 0;e = 2;r = 0;
+		break;
+	case 16:
+		m = 0;e = 0;r = 0;
+		break;
+	case 17:
+		m = 0;e = 0;r = 0;
+		break;
+	case 18:
+		m = 0;e = 0;r = 1;
+		break;
+	case 19:
+		m = 0;e = 0;r = 1;
+		break;
+	case 20:
+		m = 0;e = 0;r = 1;
+		break;
+	case 21:
+		m = 0;e = 0;r = 1;
+		break;
+	case 22:
+		m = 0;e = 0;r = 1;
+		break;
+	default:
+		traceln("FATAL ERROR");
+}
+}else if(machineType.equals("lt8_12_ula")){
+switch(productionDay){
+	case 1:
+		m = 1;e = 0;r = 0;
+		break;
+	case 2:
+		m = 1;e = 0;r = 0;
+		break;
+	case 3:
+		m = 1;e = 1;r = 0;
+		break;
+	case 4:
+		m = 1;e = 1;r = 0;
+		break;
+	case 5:
+		m = 0;e = 1;r = 0;
+		break;
+	case 6:
+		m = 0;e = 1;r = 0;
+		break;
+	case 7:
+		m = 0;e = 1;r = 0;
+		break;
+	case 8:
+		m = 0;e = 1;r = 0;
+		break;
+	case 9:
+		m = 0;e = 1;r = 0;
+		break;
+	case 10:
+		m = 0;e = 1;r = 0;
+		break;
+	case 11:
+		m = 0;e = 1;r = 0;
+		break;
+	case 12:
+		m = 1;e = 1;r = 0;
+		break;
+	case 13:
+		m = 0;e = 1;r = 0;
+		break;
+	case 14:
+		m = 0;e = 1;r = 0;
+		break;
+	case 15:
+		m = 0;e = 1;r = 0;
+		break;
+	case 16:
+		m = 0;e = 1;r = 0;
+		break;
+	case 17:
+		m = 1;e = 1;r = 0;
+		break;
+	case 18:
+		m = 0;e = 1;r = 0;
+		break;
+	case 19:
+		m = 0;e = 1;r = 0;
+		break;
+	case 20:
+		m = 0;e = 1;r = 0;
+		break;
+	case 21:
+		m = 0;e = 1;r = 0;
+		break;
+	case 22:
+		m = 0;e = 1;r = 0;
+		break;
+	case 23:
+		m = 0;e = 1;r = 0;
+		break;
+	case 24:
+		m = 0;e = 1;r = 0;
+		break;
+	case 25:
+		m = 0;e = 1;r = 0;
+		break;
+	case 26:
+		m = 0;e = 1;r = 0;
+		break;
+	case 27:
+		m = 0;e = 0;r = 0;
+		break;
+	case 28:
+		m = 0;e = 0;r = 0;
+		break;
+	case 29:
+		m = 0;e = 0;r = 1;
+		break;
+	case 30:
+		m = 0;e = 0;r = 1;
+		break;
+	case 31:
+		m = 0;e = 0;r = 1;
+		break;	
+	case 32:
+		m = 0;e = 0;r = 1;
+		break;
+	case 33:
+		m = 0;e = 0;r = 1;
+		break;
+	default:
+		traceln("FATAL ERROR");
+}
+}else if(machineType.equals("lt8_p_12_ula")){
+    switch(productionDay){
+        case 1:
+            m = 1;e = 0;r = 0;
+            break;
+        case 2:
+            m = 1;e = 0;r = 0;
+            break;
+        case 3:
+            m = 1;e = 1;r = 0;
+            break;
+        case 4:
+            m = 1;e = 1;r = 0;
+            break;
+        case 5:
+            m = 0;e = 1;r = 0;
+            break;
+        case 6:
+            m = 0;e = 1;r = 0;
+            break;
+        case 7:
+            m = 0;e = 1;r = 0;
+            break;
+        case 8:
+            m = 0;e = 2;r = 0;
+            break;
+        case 9:
+            m = 0;e = 2;r = 0;
+            break;
+        case 10:
+            m = 1;e = 1;r = 0;
+            break;
+        case 11:
+            m = 0;e = 2;r = 0;
+            break;
+        case 12:
+            m = 0;e = 2;r = 0;
+            break;
+        case 13:
+            m = 1;e = 2;r = 0;
+            break;
+        case 14:
+            m = 0;e = 2;r = 0;
+            break;
+        case 15:
+            m = 0;e = 2;r = 0;
+            break;
+        case 16:
+            m = 0;e = 2;r = 0;
+            break;
+        case 17:
+            m = 0;e = 2;r = 0;
+            break;
+        case 18:
+            m = 0;e = 0;r = 0;
+            break;
+        case 19:
+            m = 0;e = 0;r = 0;
+            break;
+        case 20:
+            m = 0;e = 0;r = 1;
+            break;
+        case 21:
+            m = 0;e = 0;r = 1;
+            break;
+        case 22:
+            m = 0;e = 0;r = 1;
+            break;
+        case 23:
+            m = 0;e = 0;r = 1;
+            break;
+        case 24:
+            m = 0;e = 0;r = 1;
+            break;
+        default:
+            traceln("FATAL ERROR");
+}
 }]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -22955,6 +24404,171 @@ switch(productionDay){
 	default:
 		traceln("FATAL ERROR");
 }
+}else if(machineType.equals("lt7_p")){
+switch(productionDay){
+	case 1:
+		return lightGrey;	// grigio
+	case 2:
+		return lightGrey;	// lightGrey
+	case 3:
+		return lightPink;	// rosa
+	case 4:
+		return lightPink;	// rosa
+	case 5:
+		return lightPink;	// rosa
+	case 6:
+		return lightPink;	// rosa
+	case 7:
+		return lightPink;	// rosa
+	case 8:
+		return lightGreen;	// verde
+	case 9:
+		return lightGreen;	// verde
+	case 10:
+		return lightGreen;	// verde
+	case 11:
+		return lightGreen;	// verde
+	case 12:
+		return lightGreen;	// verde
+	case 13:
+		return lightGreen;	// verde
+	case 14:
+		return lightSteelBlue;	// azzurro
+	case 15:
+		return lightSteelBlue;	// azzurro
+	case 16:
+		return yellow;	// giallo
+	case 17:
+		return yellow;	// giallo
+	case 18:
+		return peachPuff;	// arancione
+	case 19:
+		return peachPuff;	// arancione
+	case 20:
+		return peachPuff; // arancione
+	case 21:
+		return peachPuff; // arancione
+	default:
+		traceln("FATAL ERROR");
+}
+}else if(machineType.equals("lt7_ins")){
+switch(productionDay){
+	case 1:
+		return lightGrey;	// grigio
+	case 2:
+		return lightGrey;	// lightGrey
+	case 3:
+		return lightPink;	// rosa
+	case 4:
+		return lightPink;	// rosa
+	case 5:
+		return lightPink;	// rosa
+	case 6:
+		return lightPink;	// rosa
+	case 7:
+		return lightPink;	// rosa
+	case 8:
+		return lightGreen;	// verde
+	case 9:
+		return lightGreen;	// verde
+	case 10:
+		return lightGreen;	// verde
+	case 11:
+		return lightGreen;	// verde
+	case 12:
+		return lightGreen;	// verde
+	case 13:
+		return lightGreen;	// verde
+	case 14:
+		return lightGreen;	// verde
+	case 15:
+		return lightGreen;	// verde
+	case 16:
+		return lightGreen;	// verde
+	case 17:
+		return lightGreen;	// verde
+	case 18:
+		return lightGreen;	// verde
+	case 19:
+		return lightGreen;	// verde
+	case 20:
+		return blue; // blu
+	case 21:
+		return blue; // blu
+	case 22:
+		return blue; // blu
+	case 23:
+		return lightSteelBlue; // azzurro
+	case 24:
+		return lightSteelBlue; // azzurro
+	case 25:
+		return lightSteelBlue; // azzurro
+	case 26:
+		return yellow; // yellow
+	case 27:
+		return yellow; // yellow
+	case 28:
+		return peachPuff; // arancione
+	case 29:
+		return peachPuff; // arancione
+	case 30:
+		return peachPuff; // arancione
+	case 31:
+		return peachPuff; // arancione
+	default:
+		traceln("FATAL ERROR");
+}
+}else if(machineType.equals("lt7_p_ins")){
+switch(productionDay){
+	case 1:
+		return lightGrey;	// grigio
+	case 2:
+		return lightGrey;	// grigio
+	case 3:
+		return lightPink;	// rosa
+	case 4:
+		return lightPink;	// rosa
+	case 5:
+		return lightPink;	// rosa
+	case 6:
+		return lightPink;	// rosa
+	case 7:
+		return lightPink;	// rosa
+	case 8:
+		return lightGreen;	// verde
+	case 9:
+		return lightGreen;	// verde
+	case 10:
+		return lightGreen;	// verde
+	case 11:
+		return lightGreen;	// verde
+	case 12:
+		return lightGreen;	// verde
+	case 13:
+		return lightGreen;	// verde
+	case 14:
+		return blue;	// blu
+	case 15:
+		return blue;	// blu
+	case 16:
+		return lightSteelBlue;	// azzurro
+	case 17:
+		return lightSteelBlue;	// azzurro
+	case 18:
+		return yellow;	// giallo
+	case 19:
+		return yellow;	// giallo
+	case 20:
+		return peachPuff; // arancione
+	case 21:
+		return peachPuff; // arancione
+	case 22:
+		return peachPuff; // arancione
+	case 23:
+		return peachPuff; // arancione
+	default:
+		traceln("FATAL ERROR");
+}
 }else if(machineType.equals("lt8")){
 switch(productionDay){
 	case 1:
@@ -23016,6 +24630,409 @@ switch(productionDay){
 	default:
 		traceln("FATAL ERROR");
 }
+}else if(machineType.equals("lt8_p")){
+switch(productionDay){
+	case 1:
+		return lightGrey;	// grigio
+	case 2:
+		return lightPink;	// rosa
+	case 3:
+		return lightPink;	// rosa
+	case 4:
+		return lightPink;	// rosa
+	case 5:
+		return lightPink;	// rosa
+	case 6:
+		return lightGreen;	// verde
+	case 7:
+		return lightGreen;	// verde
+	case 8:
+		return lightGreen;	// verde
+	case 9:
+		return lightGreen;	// verde
+	case 10:
+		return lightGreen;	// verde
+	case 11:
+		return lightGreen;	// verde
+	case 12:
+		return lightGreen;	// verde
+	case 13:
+		return lightGreen;	// verde
+	case 14:
+		return lightGreen;	// verde
+	case 15:
+		return yellow;	// giallo
+	case 16:
+		return yellow;	// giallo
+	case 17:
+		return peachPuff;	// arancione
+	case 18:
+		return peachPuff;	// arancione
+	case 19:
+		return peachPuff;	// arancione
+	case 20:
+		return peachPuff; // arancione
+	case 21:
+		return peachPuff; // arancione
+	default:
+		traceln("FATAL ERROR");
+}
+}else if(machineType.equals("lt8_ula")){
+switch(productionDay){
+	case 1:
+		return lightGrey;	// grigio
+	case 2:
+		return lightPink;	// rosa
+	case 3:
+		return blue;	// blu
+	case 4:
+		return lightPink;	// rosa
+	case 5:
+		return lightPink;	// rosa
+	case 6:
+		return lightPink;	// rosa
+	case 7:
+		return lightGreen;	// verde
+	case 8:
+		return lightGreen;	// verde
+	case 9:
+		return lightGreen;	// verde
+	case 10:
+		return lightGreen;	// verde
+	case 11:
+		return lightGreen;	// verde
+	case 12:
+		return lightGreen;	// verde
+	case 13:
+		return lightGreen;	// verde
+	case 14:
+		return lightGreen;	// verde
+	case 15:
+		return lightGreen;	// verde
+	case 16:
+		return blue;	// blu
+	case 17:
+		return blue;	// blu
+	case 18:
+		return lightGreen;	// verde
+	case 19:
+		return lightGreen;	// verde
+	case 20:
+		return lightGreen; // verde
+	case 21:
+		return lightSteelBlue; // azzurro
+	case 22:
+		return lightSteelBlue; // azzurro
+	case 23:
+		return lightSteelBlue; // azzurro
+	case 24:
+		return lightSteelBlue; // azzurro
+	case 25:
+		return yellow; // giallo
+	case 26:
+		return yellow; // giallo
+	case 27:
+		return peachPuff; // arancione
+	case 28:
+		return peachPuff; // arancione
+	case 29:
+		return peachPuff; // arancione
+	case 30:
+		return peachPuff; // arancione
+	case 31:
+		return peachPuff; // arancione
+	default:
+		traceln("FATAL ERROR");
+}
+}else if(machineType.equals("lt8_p_ula")){
+switch(productionDay){
+	case 1:
+		return lightGrey;	// grigio
+	case 2:
+		return lightPink;	// rosa
+	case 3:
+		return blue;	// blu
+	case 4:
+		return lightPink;	// rosa
+	case 5:
+		return lightPink;	// rosa
+	case 6:
+		return lightPink;	// rosa
+	case 7:
+		return lightGreen;	// verde
+	case 8:
+		return lightGreen;	// verde
+	case 9:
+		return lightGreen;	// verde
+	case 10:
+		return lightGreen;	// verde
+	case 11:
+		return lightGreen;	// verde
+	case 12:
+		return blue;	// blu
+	case 13:
+		return lightGreen;	// verde
+	case 14:
+		return lightGreen;	// verde
+	case 15:
+		return lightSteelBlue;	// azzurro
+	case 16:
+		return lightSteelBlue;	// azzurro
+	case 17:
+		return yellow;	// giallo
+	case 18:
+		return yellow;	// giallo
+	case 19:
+		return peachPuff;	// arancione
+	case 20:
+		return peachPuff; // arancione
+	case 21:
+		return peachPuff; // arancione
+	case 22:
+		return peachPuff; // arancione
+	case 23:
+		return peachPuff; // arancione
+	default:
+		traceln("FATAL ERROR");
+}
+}else if(machineType.equals("lt8_12")){
+switch(productionDay){
+	case 1:
+		return lightGrey;	// grigio
+	case 2:
+		return lightGrey;	// grigio
+	case 3:
+		return lightPink;	// rosa
+	case 4:
+		return lightPink;	// rosa
+	case 5:
+		return lightPink;	// rosa
+	case 6:
+		return lightPink;	// rosa
+	case 7:
+		return lightGreen;	// verde
+	case 8:
+		return lightGreen;	// verde
+	case 9:
+		return lightGreen;	// verde
+	case 10:
+		return lightGreen;	// verde
+	case 11:
+		return lightGreen;	// verde
+	case 12:
+		return lightGreen;	// verde
+	case 13:
+		return lightGreen;	// verde
+	case 14:
+		return lightGreen;	// verde
+	case 15:
+		return lightGreen;	// verde
+	case 16:
+		return lightGreen;	// verde
+	case 17:
+		return lightGreen;	// verde
+	case 18:
+		return lightGreen;	// verde
+	case 19:
+		return lightSteelBlue;	// azzurro
+	case 20:
+		return lightSteelBlue; // azzurro
+	case 21:
+		return lightSteelBlue; // azzurro
+	case 22:
+		return lightSteelBlue; // azzurro
+	case 23:
+		return lightSteelBlue; // azzurro
+	case 24:
+		return yellow; // giallo
+	case 25:
+		return yellow; // giallo
+	case 26:
+		return peachPuff; // arancione
+	case 27:
+		return peachPuff; // arancione
+	case 28:
+		return peachPuff; // arancione
+	case 29:
+		return peachPuff; // arancione
+	case 30:
+		return peachPuff; // arancione
+	default:
+		traceln("FATAL ERROR");
+}
+}else if(machineType.equals("lt8_p_12")){
+switch(productionDay){
+	case 1:
+		return lightGrey;	// grigio
+	case 2:
+		return lightGrey;	// grigio
+	case 3:
+		return lightPink;	// rosa
+	case 4:
+		return lightPink;	// rosa
+	case 5:
+		return lightPink;	// rosa
+	case 6:
+		return lightPink;	// rosa
+	case 7:
+		return lightGreen;	// verde
+	case 8:
+		return lightGreen;	// verde
+	case 9:
+		return lightGreen;	// verde
+	case 10:
+		return lightGreen;	// verde
+	case 11:
+		return lightGreen;	// verde
+	case 12:
+		return lightGreen;	// verde
+	case 13:
+		return lightSteelBlue;	// azzurro
+	case 14:
+		return lightSteelBlue;	// azzurro
+	case 15:
+		return lightSteelBlue;	// azzurro
+	case 16:
+		return yellow;	// giallo
+	case 17:
+		return yellow;	// giallo
+	case 18:
+		return peachPuff;	// arancione
+	case 19:
+		return peachPuff;	// arancione
+	case 20:
+		return peachPuff; // arancione
+	case 21:
+		return peachPuff; // arancione
+	case 22:
+		return peachPuff; // arancione
+	default:
+		traceln("FATAL ERROR");
+}
+}else if(machineType.equals("lt8_12_ula")){
+switch(productionDay){
+	case 1:
+		return lightGrey;	// grigio
+	case 2:
+		return lightGrey;	// grigio
+	case 3:
+		return lightPink;	// rosa
+	case 4:
+		return blue;	// blu
+	case 5:
+		return lightPink;	// rosa
+	case 6:
+		return lightPink;	// rosa
+	case 7:
+		return lightPink;	// rosa
+	case 8:
+		return lightGreen;	// verde
+	case 9:
+		return lightGreen;	// verde
+	case 10:
+		return lightGreen;	// verde
+	case 11:
+		return lightGreen;	// verde
+	case 12:
+		return lightGreen;	// verde
+	case 13:
+		return lightGreen;	// verde
+	case 14:
+		return lightGreen;	// verde
+	case 15:
+		return lightGreen;	// verde
+	case 16:
+		return lightGreen;	// verde
+	case 17:
+		return blue;	// blu
+	case 18:
+		return blue;	// blu
+	case 19:
+		return lightGreen;	// verde
+	case 20:
+		return lightGreen; // verde
+	case 21:
+		return lightGreen; // verde
+	case 22:
+		return lightSteelBlue; // azzurro
+	case 23:
+		return lightSteelBlue; // azzurro
+	case 24:
+		return lightSteelBlue; // azzurro
+	case 25:
+		return lightSteelBlue; // azzurro
+	case 26:
+		return lightSteelBlue; // azzurro
+	case 27:
+		return yellow; // giallo
+	case 28:
+		return yellow; // giallo
+	case 29:
+		return peachPuff; // arancione
+	case 30:
+		return peachPuff; // arancione
+	case 31:
+		return peachPuff; // arancione
+	case 32:
+		return peachPuff; // arancione
+	case 33:
+		return peachPuff; // arancione
+	default:
+		traceln("FATAL ERROR");
+}
+}else if(machineType.equals("lt8_p_12_ula")){
+switch(productionDay){
+	case 1:
+		return lightGrey;	// grigio
+	case 2:
+		return lightGrey;	// grigio
+	case 3:
+		return lightPink;	// rosa
+	case 4:
+		return blue;	// blu
+	case 5:
+		return lightPink;	// rosa
+	case 6:
+		return lightPink;	// rosa
+	case 7:
+		return lightPink;	// rosa
+	case 8:
+		return lightGreen;	// verde
+	case 9:
+		return lightGreen;	// verde
+	case 10:
+		return lightGreen;	// verde
+	case 11:
+		return lightGreen;	// verde
+	case 12:
+		return lightGreen;	// verde
+	case 13:
+		return blue;	// blu
+	case 14:
+		return lightGreen;	// verde
+	case 15:
+		return lightSteelBlue;	// azzurro
+	case 16:
+		return lightSteelBlue;	// azzurro
+	case 17:
+		return lightSteelBlue;	// azzurro
+	case 18:
+		return yellow;	// giallo
+	case 19:
+		return yellow;	// giallo
+	case 20:
+		return peachPuff; // arancione
+	case 21:
+		return peachPuff; // arancione
+	case 22:
+		return peachPuff; // arancione
+	case 23:
+		return peachPuff; // arancione
+	case 24:
+		return peachPuff; // arancione
+	default:
+		traceln("FATAL ERROR");
+}
 }
 return lightGrey;]]></Body>
 				</Function>
@@ -23032,8 +25049,28 @@ return lightGrey;]]></Body>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[if(machineType.equals("lt7")){
 	return 28;
+}else if(machineType.equals("lt7_p")){
+	return 21;
+}else if(machineType.equals("lt7_ins")){
+	return 31;
+}else if(machineType.equals("lt7_p_ins")){
+	return 23;
 }else if(machineType.equals("lt8")){
 	return 28;
+}else if(machineType.equals("lt8_p")){
+	return 21;
+}else if(machineType.equals("lt8_ula")){
+	return 31;
+}else if(machineType.equals("lt8_p_ula")){
+	return 23;
+}else if(machineType.equals("lt8_12")){
+	return 30;
+}else if(machineType.equals("lt8_p_12")){
+	return 22;
+}else if(machineType.equals("lt8_12_ula")){
+	return 33;
+}else if(machineType.equals("lt8_p_12_ula")){
+	return 24;
 }
 return 0;]]></Body>
 				</Function>
@@ -23057,12 +25094,63 @@ return 0;]]></Body>
 		return true;
 	}
 	return false;
+}else if(machineType.equals("lt7_p")){
+	if(simulationDay>=date_basement_arrival){
+		return true;
+	}
+	return false;
+}else if(machineType.equals("lt7_ins")){
+	if(simulationDay>=date_basement_arrival){
+		return true;
+	}
+	return false;
+}else if(machineType.equals("lt7_p_ins")){
+	if(simulationDay>=date_basement_arrival){
+		return true;
+	}
+	return false;
 }else if(machineType.equals("lt8")){
 	if(simulationDay>=date_basement_arrival){
 		return true;
 	}
 	return false;
+}else if(machineType.equals("lt8_p")){
+	if(simulationDay>=date_basement_arrival){
+		return true;
+	}
+	return false;
+}else if(machineType.equals("lt8_ula")){
+	if(simulationDay>=date_basement_arrival){
+		return true;
+	}
+	return false;
+}else if(machineType.equals("lt8_p_ula")){
+	if(simulationDay>=date_basement_arrival){
+		return true;
+	}
+	return false;
+}else if(machineType.equals("lt8_12")){
+	if(simulationDay>=date_basement_arrival){
+		return true;
+	}
+	return false;
+}else if(machineType.equals("lt8_p_12")){
+	if(simulationDay>=date_basement_arrival){
+		return true;
+	}
+	return false;
+}else if(machineType.equals("lt8_12_ula")){
+	if(simulationDay>=date_basement_arrival){
+		return true;
+	}
+	return false;
+}else if(machineType.equals("lt8_p_12_ula")){
+	if(simulationDay>=date_basement_arrival){
+		return true;
+	}
+	return false;
 }
+traceln("ERROR in checkBasement");
 return true;]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -23088,6 +25176,30 @@ return true;]]></Body>
 		return true;
 	}
 	return false;
+}else if(machineType.equals("lt7_p")){
+	if(simulationDay>=date_electrical_panel_arrival){
+		return true;
+	}
+	if(productionDay<3){	// the electrical panel is not needed before day 2
+		return true;
+	}
+	return false;
+}else if(machineType.equals("lt7_ins")){
+	if(simulationDay>=date_electrical_panel_arrival){
+		return true;
+	}
+	if(productionDay<3){	// the electrical panel is not needed before day 2
+		return true;
+	}
+	return false;
+}else if(machineType.equals("lt7_p_ins")){
+	if(simulationDay>=date_electrical_panel_arrival){
+		return true;
+	}
+	if(productionDay<3){	// the electrical panel is not needed before day 2
+		return true;
+	}
+	return false;
 }else if(machineType.equals("lt8")){
 	if(simulationDay>=date_electrical_panel_arrival){
 		return true;
@@ -23096,7 +25208,64 @@ return true;]]></Body>
 		return true;
 	}
 	return false;
+}else if(machineType.equals("lt8_p")){
+	if(simulationDay>=date_electrical_panel_arrival){
+		return true;
+	}
+	if(productionDay<2){	// the electrical panel is not needed before day 2
+		return true;
+	}
+	return false;
+}else if(machineType.equals("lt8_ula")){
+	if(simulationDay>=date_electrical_panel_arrival){
+		return true;
+	}
+	if(productionDay<2){	// the electrical panel is not needed before day 2
+		return true;
+	}
+	return false;
+}else if(machineType.equals("lt8_p_ula")){
+	if(simulationDay>=date_electrical_panel_arrival){
+		return true;
+	}
+	if(productionDay<2){	// the electrical panel is not needed before day 2
+		return true;
+	}
+	return false;
+}else if(machineType.equals("lt8_12")){
+	if(simulationDay>=date_electrical_panel_arrival){
+		return true;
+	}
+	if(productionDay<3){	// the electrical panel is not needed before day 2
+		return true;
+	}
+	return false;
+}else if(machineType.equals("lt8_p_12")){
+	if(simulationDay>=date_electrical_panel_arrival){
+		return true;
+	}
+	if(productionDay<3){	// the electrical panel is not needed before day 2
+		return true;
+	}
+	return false;
+}else if(machineType.equals("lt8_12_ula")){
+	if(simulationDay>=date_electrical_panel_arrival){
+		return true;
+	}
+	if(productionDay<3){	// the electrical panel is not needed before day 2
+		return true;
+	}
+	return false;
+}else if(machineType.equals("lt8_p_12_ula")){
+	if(simulationDay>=date_electrical_panel_arrival){
+		return true;
+	}
+	if(productionDay<3){	// the electrical panel is not needed before day 2
+		return true;
+	}
+	return false;
 }
+traceln("ERROR checkElectricalPanel");
 return true;]]></Body>
 				</Function>
 			</Functions>

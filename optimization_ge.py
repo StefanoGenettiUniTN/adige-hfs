@@ -134,7 +134,17 @@ class AdigeEnv(gym.Env):
         # machine type encoding
         self.machine_type_encoding: Dict[str, int] = {
             "lt7": 0,
-            "lt8": 1
+            "lt7_p": 1,
+            "lt7_ins": 2,
+            "lt7_p_ins": 3,
+            "lt8": 4,
+            "lt8_p": 5,
+            "lt8_ula": 6,
+            "lt8_p_ula": 7,
+            "lt8_12": 8,
+            "lt8_p_12": 9,
+            "lt8_12_ula": 10,
+            "lt8_p_12_ula": 11,
         }
 
         # observation space
@@ -381,6 +391,10 @@ def evaluate_fitness(genotype, episodes, n_actions, learning_rate, discount_fact
         bt(obs)
         global_cumulative_rewards.append(cum_rew)
     env.close()
+    
+    tmp_log_file = open("loggino.txt", 'a')
+    tmp_log_file.write(str(global_cumulative_rewards))
+    tmp_log_file.close()
 
     fitness = np.mean(global_cumulative_rewards),
     return fitness, bt.leaves
@@ -783,7 +797,7 @@ if __name__ == '__main__':
                 phenotype = phenotype.replace("out=_leaf", "out={}".format(np.argmax(v)), 1)
             else:
                 break
-        print("Best individual GE is %s, %s" % (hof[0], args["max_makespan"]-hof[0].fitness.values))
+        print("Best individual GE is %s, %s" % (hof[0], args["max_makespan"]-hof[0].fitness.values[0]))
         print(f"Phenotype: {phenotype}")
 
         # write best individual on file
@@ -811,7 +825,7 @@ if __name__ == '__main__':
         plt.show()
 
         # best individual
-        print("Best individual GE is %s, %s" % (hof[0], args["max_makespan"]-hof[0].fitness.values))
+        print("Best individual GE is %s, %s" % (hof[0], args["max_makespan"]-hof[0].fitness.values[0]))
 
         # store result csv
         df = pd.DataFrame()
