@@ -2904,13 +2904,13 @@ for (Map.Entry<Integer, Lt> entry : orderList) {
 		int csv_date_electrical_panel_arrival = Integer.parseInt(r[3]);
 		int csv_date_delivery = Integer.parseInt(r[4]);
 		
-		////traceln("order in file");
-		////traceln("csv_order_id: "+csv_order_id);
-		////traceln("csv_machine_type: "+csv_machine_type);
-		////traceln("csv_date_basement_arrival: "+csv_date_basement_arrival);
-		////traceln("csv_date_electrical_panel_arrival: "+csv_date_electrical_panel_arrival);
-		////traceln("csv_date_delivery: "+csv_date_delivery);
-		////traceln("");
+		//traceln("order in file");
+		//traceln("csv_order_id: "+csv_order_id);
+		//traceln("csv_machine_type: "+csv_machine_type);
+		//traceln("csv_date_basement_arrival: "+csv_date_basement_arrival);
+		//traceln("csv_date_electrical_panel_arrival: "+csv_date_electrical_panel_arrival);
+		//traceln("csv_date_delivery: "+csv_date_delivery);
+		//traceln("");
 		
 		int csv_order_priority = 1;
 		// assign order priority reading optimizer's design variables
@@ -2955,10 +2955,10 @@ for (Map.Entry<Integer, Lt> entry : orderList) {
 	getSchedule();
 	
 	////traceln("order schedule: ");
-	for(int o : orderSchedule){
-		trace(o+" -");
-	}
-	traceln("");
+	//for(int o : orderSchedule){
+		//trace(o+" -");
+	//}
+	//traceln("");
 	
 	// everything has been properly initialized
 	// unlock the daily update mutex and start the execution
