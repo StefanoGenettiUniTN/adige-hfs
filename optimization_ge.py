@@ -132,7 +132,7 @@ class AdigeEnv(gym.Env):
                  dataset_file_path: str,
                  max_makespan: int):
         # machine type encoding
-        self.machine_type_encoding: Dict[str, int] = {
+        self.machine_type_encoding: Dict[str, int] = {  # TO BE UPDATED WHEN THE NUMBER OF MACHINE CATEGORIES CHANGE
             "lt7": 0,
             "lt7_p": 1,
             "lt7_ins": 2,
@@ -146,6 +146,24 @@ class AdigeEnv(gym.Env):
             "lt8_12_ula": 10,
             "lt8_p_12_ula": 11,
         }
+        '''
+        self.machine_type_encoding: Dict[str, int] = {  # TO BE UPDATED WHEN THE NUMBER OF MACHINE CATEGORIES CHANGE
+            "lt8": 0,
+            "lt8_p": 1,
+            "lt8_ula": 2,
+            "lt8_p_ula": 3,
+            "lt8_12": 4,
+            "lt8_p_12": 5,
+            "lt8_12_ula": 6,
+            "lt8_p_12_ula": 7,
+        }
+        '''
+        '''
+        self.machine_type_encoding: Dict[str, int] = {  # TO BE UPDATED WHEN THE NUMBER OF MACHINE CATEGORIES CHANGE
+            "lt7": 0,
+            "lt8": 1
+        }
+        '''
 
         # observation space
         # 1-D vector [machine_type, date_basement_arrival, date_electrical_panel_arrival, date_delivery, remaining_orders]
@@ -392,9 +410,9 @@ def evaluate_fitness(genotype, episodes, n_actions, learning_rate, discount_fact
         global_cumulative_rewards.append(cum_rew)
     env.close()
     
-    tmp_log_file = open("loggino.txt", 'a')
-    tmp_log_file.write(str(global_cumulative_rewards))
-    tmp_log_file.close()
+    #tmp_log_file = open("loggino.txt", 'a')
+    #tmp_log_file.write(str(global_cumulative_rewards))
+    #tmp_log_file.close()
 
     fitness = np.mean(global_cumulative_rewards),
     return fitness, bt.leaves
@@ -653,6 +671,8 @@ def read_arguments():
     
     parser.add_argument("--input_csv", type=str, help="File path of the CSV where the optimization output has been stored.")
     parser.add_argument("--random_seed", type=int, default=42, help="Seed to initialize the pseudo-random number generation.")
+    parser.add_argument("--out_dir", type=str, help="Output folder.")
+    parser.add_argument('--no_runs', type=int, default=1, help='Number of runs.')
 
     parser.add_argument("--m", type=int, default=1, help="Resources of type M.")
     parser.add_argument("--e", type=int, default=1, help="Resources of type E.")
@@ -688,20 +708,20 @@ if __name__ == '__main__':
         csv_file_path = args["input_csv"]
         df = pd.read_csv(csv_file_path)
         plt.figure(figsize=(10, 6))
-        plt.plot(df['generation'], df['average_fitness'], marker='o', linestyle='-', linewidth=1, markersize=4, label='Average Fitness')
-        plt.plot(df['generation'], df['best_fitness'], marker='o', linestyle='-', linewidth=1, markersize=4, label='Best Fitness')
-        plt.plot(df['generation'], df['worst_fitness'], marker='o', linestyle='-', linewidth=1, markersize=4, label='Worst Fitness')
+        plt.plot(df['generation'][1:], df['average_fitness'][1:], marker='o', linestyle='-', linewidth=1, markersize=4, label='Average Fitness')
+        plt.plot(df['generation'][1:], df['best_fitness'][1:], marker='o', linestyle='-', linewidth=1, markersize=4, label='Best Fitness')
+        plt.plot(df['generation'][1:], df['worst_fitness'][1:], marker='o', linestyle='-', linewidth=1, markersize=4, label='Worst Fitness')
         plt.xlabel('Generation')
         plt.ylabel('Makespan')
         plt.title('Fitness Trend')
         plt.legend()
         plt.grid(True)
         #plt.show()
-        plt.savefig("output/ge.pdf")
-        plt.savefig("output/ge.png")
+        plt.savefig(f"{args['out_dir']}/ge.pdf")
+        plt.savefig(f"{args['out_dir']}/ge.png")
     else:
         # clear log file
-        logfile = open("log_ge.txt", "w")
+        logfile = open(f"{args['out_dir']}/log_ge.txt", "w")
         logfile.write("log\n")
         logfile.close()
 
@@ -801,7 +821,7 @@ if __name__ == '__main__':
         print(f"Phenotype: {phenotype}")
 
         # write best individual on file
-        logfile = open("log_ge.txt", "a")
+        logfile = open(f"{args['out_dir']}/log_ge.txt", "a")
         logfile.write(str(log) + "\n")
         logfile.write(str(hof[0]) + "\n")
         logfile.write(phenotype + "\n")
@@ -833,4 +853,4 @@ if __name__ == '__main__':
         df["average_fitness"] = plt_fit_avg
         df["best_fitness"] = plt_fit_max
         df["worst_fitness"] = plt_fit_min
-        df.to_csv("history_ge.csv", sep=",", index=False)
+        df.to_csv(f"{args['out_dir']}/history_ge.csv", sep=",", index=False)
