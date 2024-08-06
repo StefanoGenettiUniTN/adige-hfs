@@ -11,6 +11,7 @@ def read_arguments():
     parser = argparse.ArgumentParser(description="Adige hybrid flow shop scheduling optimizer.")
     
     parser.add_argument("--input_csv", type=str, help="File path of the CSV where the optimization output has been stored.")
+    parser.add_argument("--out_dir", type=str, help="Output folder.")
 
     parser.add_argument("--m", type=int, default=1, help="Resources of type M.")
     parser.add_argument("--e", type=int, default=1, help="Resources of type E.")
@@ -35,7 +36,9 @@ if __name__ == '__main__':
         plt.title('Fitness Trend')
         plt.legend()
         plt.grid(True)
-        plt.show()
+        #plt.show()
+        plt.savefig(f"{args['out_dir']}/heuristic.pdf")
+        plt.savefig(f"{args['out_dir']}/heuristic.png")
     else:
         adige_model = AnyLogicModel(
             env_config={
@@ -99,7 +102,7 @@ if __name__ == '__main__':
         adige_model.close()
 
         # store fitness trend history in csv output file
-        csv_file_path = "history_heuristic.csv"
+        csv_file_path = f"{args['out_dir']}/history_heuristic.csv"
         csv_file = open(csv_file_path, mode='w', newline='')
         csv_writer = csv.writer(csv_file)
         csv_writer.writerow(["x", "y"])
