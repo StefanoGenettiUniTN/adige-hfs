@@ -7,6 +7,8 @@ import numpy as np
 import gymnasium as gym
 import re
 import datetime
+import os
+import time
 from alpypeopt import AnyLogicModel
 from gymnasium import spaces
 from deap import creator
@@ -481,6 +483,7 @@ def eaSimple(population,
              cxpb,
              mutpb,
              ngen,
+             timeout,
              stats=None,
              halloffame=None,
              verbose=__debug__,
@@ -574,51 +577,99 @@ def eaSimple(population,
         print(logbook.stream)
 
     # Begin the generational process
-    for gen in range(1, ngen + 1):
+    if ngen:
+        for gen in range(1, ngen + 1):
 
-        # Select the next generation individuals
-        offspring = toolbox.select(population, len(population))
+            # Select the next generation individuals
+            offspring = toolbox.select(population, len(population))
 
-        # Vary the pool of individuals
-        offspring = var(offspring, toolbox, cxpb, mutpb)
+            # Vary the pool of individuals
+            offspring = var(offspring, toolbox, cxpb, mutpb)
 
-        # Evaluate the individuals with an invalid fitness
-        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        fitnesses = [*toolbox.map(toolbox.evaluate, invalid_ind)]
-        leaves = [f[1] for f in fitnesses]
-        fitnesses = [f[0] for f in fitnesses]
+            # Evaluate the individuals with an invalid fitness
+            invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+            fitnesses = [*toolbox.map(toolbox.evaluate, invalid_ind)]
+            leaves = [f[1] for f in fitnesses]
+            fitnesses = [f[0] for f in fitnesses]
 
-        for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
-            ind.fitness.values = fit
-            if logfile is not None and (best is None or best < fit[0]):
-                best = fit[0]
-                best_leaves = leaves[i]
-                with open(logfile, "a") as log_:
-                    log_.write("[{}] New best at generation {} with fitness {}\n".format(datetime.datetime.now(), gen, fit))
-                    log_.write(str(ind) + "\n")
-                    log_.write("Leaves\n")
-                    log_.write(str(leaves[i]) + "\n")
+            for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
+                ind.fitness.values = fit
+                if logfile is not None and (best is None or best < fit[0]):
+                    best = fit[0]
+                    best_leaves = leaves[i]
+                    with open(logfile, "a") as log_:
+                        log_.write("[{}] New best at generation {} with fitness {}\n".format(datetime.datetime.now(), gen, fit))
+                        log_.write(str(ind) + "\n")
+                        log_.write("Leaves\n")
+                        log_.write(str(leaves[i]) + "\n")
 
-        # Update the hall of fame with the generated individuals
-        if halloffame is not None:
-            halloffame.update(offspring)
+            # Update the hall of fame with the generated individuals
+            if halloffame is not None:
+                halloffame.update(offspring)
 
-        # Replace the current population by the offspring
-        for o in offspring:
-            argmin = np.argmin(map(lambda x: population[x].fitness.values[0], o.parents))
+            # Replace the current population by the offspring
+            for o in offspring:
+                argmin = np.argmin(map(lambda x: population[x].fitness.values[0], o.parents))
 
-            if o.fitness.values[0] > population[o.parents[argmin]].fitness.values[0]:
-                population[o.parents[argmin]] = o
+                if o.fitness.values[0] > population[o.parents[argmin]].fitness.values[0]:
+                    population[o.parents[argmin]] = o
 
-        # Append the current generation statistics to the logbook
-        record = stats.compile(population) if stats else {}
-        logbook.record(gen=gen, nevals=len(invalid_ind), **record)
-        if verbose:
-            print(logbook.stream)
+            # Append the current generation statistics to the logbook
+            record = stats.compile(population) if stats else {}
+            logbook.record(gen=gen, nevals=len(invalid_ind), **record)
+            if verbose:
+                print(logbook.stream)
+    
+    if timeout:
+        gen=1
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            # Select the next generation individuals
+            offspring = toolbox.select(population, len(population))
+
+            # Vary the pool of individuals
+            offspring = var(offspring, toolbox, cxpb, mutpb)
+
+            # Evaluate the individuals with an invalid fitness
+            invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+            fitnesses = [*toolbox.map(toolbox.evaluate, invalid_ind)]
+            leaves = [f[1] for f in fitnesses]
+            fitnesses = [f[0] for f in fitnesses]
+
+            for i, (ind, fit) in enumerate(zip(invalid_ind, fitnesses)):
+                ind.fitness.values = fit
+                if logfile is not None and (best is None or best < fit[0]):
+                    best = fit[0]
+                    best_leaves = leaves[i]
+                    with open(logfile, "a") as log_:
+                        log_.write("[{}] New best at generation {} with fitness {}\n".format(datetime.datetime.now(), gen, fit))
+                        log_.write(str(ind) + "\n")
+                        log_.write("Leaves\n")
+                        log_.write(str(leaves[i]) + "\n")
+
+            # Update the hall of fame with the generated individuals
+            if halloffame is not None:
+                halloffame.update(offspring)
+
+            # Replace the current population by the offspring
+            for o in offspring:
+                argmin = np.argmin(map(lambda x: population[x].fitness.values[0], o.parents))
+
+                if o.fitness.values[0] > population[o.parents[argmin]].fitness.values[0]:
+                    population[o.parents[argmin]] = o
+
+            # Append the current generation statistics to the logbook
+            record = stats.compile(population) if stats else {}
+            logbook.record(gen=gen, nevals=len(invalid_ind), **record)
+            if verbose:
+                print(logbook.stream)
+            
+            gen+=1
 
     return population, logbook, best_leaves
 def grammatical_evolution(fitness_function,
                           generations,
+                          timeout,
                           cx_prob,
                           m_prob,
                           tournament_size,
@@ -627,8 +678,10 @@ def grammatical_evolution(fitness_function,
                           rng,
                           initial_len,
                           max_makespan):
-    creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-    creator.create("Individual", ListWithParents, typecode='d', fitness=creator.FitnessMax)
+    if not hasattr(creator, "FitnessMax"):
+        creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+    if not hasattr(creator, "Individual"):
+        creator.create("Individual", ListWithParents, typecode='d', fitness=creator.FitnessMax)
 
     toolbox = base.Toolbox()
 
@@ -654,15 +707,28 @@ def grammatical_evolution(fitness_function,
     mstats.register("min", np.min)
     mstats.register("max", np.max)
     
-    pop, log, best_leaves = eaSimple(population=pop,
-                                     toolbox=toolbox,
-                                     cxpb=cx_prob,
-                                     mutpb=m_prob,
-                                     ngen=generations,
-                                     stats=mstats,
-                                     halloffame=hof,
-                                     verbose=True,
-                                     logfile="log_ge.txt")
+    if generations:
+        pop, log, best_leaves = eaSimple(population=pop,
+                                        toolbox=toolbox,
+                                        cxpb=cx_prob,
+                                        mutpb=m_prob,
+                                        ngen=generations,
+                                        timeout=None,
+                                        stats=mstats,
+                                        halloffame=hof,
+                                        verbose=True,
+                                        logfile="log_ge.txt")
+    if timeout:
+        pop, log, best_leaves = eaSimple(population=pop,
+                                        toolbox=toolbox,
+                                        cxpb=cx_prob,
+                                        mutpb=m_prob,
+                                        ngen=None,
+                                        timeout=timeout,
+                                        stats=mstats,
+                                        halloffame=hof,
+                                        verbose=True,
+                                        logfile="log_ge.txt")
     
     return pop, log, hof, best_leaves
 ################################################################################
@@ -682,7 +748,8 @@ def read_arguments():
     parser.add_argument("--dataset", type=str, default="data/d.csv", help="File path with the dataset.")
 
     parser.add_argument('--population_size', type=int, default=10, help='population size.')
-    parser.add_argument('--max_generations', type=int, default=50, help='number of generations.')
+    parser.add_argument('--max_generations', type=int, help='number of generations.')
+    parser.add_argument('--timeout', type=int, help='computational budget.')
     parser.add_argument('--mutation_pb', type=float, default=0.5, help='mutation probability.')
     parser.add_argument('--crossover_pb', type=float, default=0.5, help='crossover probability.')
     parser.add_argument('--trnmt_size', type=int, default=2, help='tournament size.')
@@ -720,10 +787,10 @@ if __name__ == '__main__':
         plt.savefig(f"{args['out_dir']}/ge.pdf")
         plt.savefig(f"{args['out_dir']}/ge.png")
     else:
-        # clear log file
-        logfile = open(f"{args['out_dir']}/log_ge.txt", "w")
-        logfile.write("log\n")
-        logfile.close()
+        # create directory for saving results
+        current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_folder_path = f"{args['out_dir']}/{current_datetime}"
+        os.makedirs(output_folder_path)
 
         # read the input dataset
         input_df = pd.read_csv(args["dataset"])
@@ -795,62 +862,109 @@ if __name__ == '__main__':
                                     env=env,
                                     num_jobs=input_df.shape[0])
 
-        pop, log, hof, best_leaves = grammatical_evolution(fitness_function=fitness_function,
-                                                           generations=args["max_generations"],
-                                                           cx_prob=args["crossover_pb"],
-                                                           m_prob=args["mutation_pb"],
-                                                           tournament_size=args["trnmt_size"],
-                                                           population_size=args["population_size"],
-                                                           hall_of_fame_size=args["hall_of_fame_size"],
-                                                           rng=rng,
-                                                           initial_len=args["genotype_len"],
-                                                           max_makespan=args["max_makespan"])
-        
-        # retrive best individual
-        phenotype, _ = GrammaticalEvolutionTranslator(grammar).genotype_to_str(hof[0])
-        phenotype = phenotype.replace('leaf="_leaf"', '')
-        # iterate over all possible leaves
-        for k in range(50000):
-            key = "leaf_{}".format(k)
-            if key in best_leaves:
-                v = best_leaves[key].q
-                phenotype = phenotype.replace("out=_leaf", "out={}".format(np.argmax(v)), 1)
-            else:
-                break
-        print("Best individual GE is %s, %s" % (hof[0], args["max_makespan"]-hof[0].fitness.values[0]))
-        print(f"Phenotype: {phenotype}")
+        for r in range(args["no_runs"]):
+            # create directory for saving results of the run
+            output_folder_run_path = output_folder_path+"/"+str(r+1)
+            os.makedirs(output_folder_run_path)
 
-        # write best individual on file
-        logfile = open(f"{args['out_dir']}/log_ge.txt", "a")
-        logfile.write(str(log) + "\n")
-        logfile.write(str(hof[0]) + "\n")
-        logfile.write(phenotype + "\n")
-        logfile.write("best_fitness: {}".format(hof[0].fitness.values[0]))
-        logfile.close()
+            # clear log file
+            logfile = open(f"{output_folder_run_path}/log_ge.txt", "w")
+            logfile.write("log\n")
+            logfile.write(f"algorithm: grammatical evolution\n")
+            logfile.write(f"current date and time: {datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}\n")
+            logfile.write(f"no_runs: {args['no_runs']}\n")
+            logfile.write(f"m: {args['m']}\n")
+            logfile.write(f"e: {args['e']}\n")
+            logfile.write(f"r: {args['r']}\n")
+            logfile.write(f"num_machine_types: {args['num_machine_types']}\n")
+            logfile.write(f"max_makespan: {args['max_makespan']}\n")
+            logfile.write(f"dataset: {args['dataset']}\n")
+            logfile.write(f"population_size: {args['population_size']}\n")
+            logfile.write(f"max_generations: {args['max_generations']}\n")
+            logfile.write(f"timeout: {args['timeout']}\n")
+            logfile.write(f"mutation_pb: {args['mutation_pb']}\n")
+            logfile.write(f"crossover_pb: {args['crossover_pb']}\n")
+            logfile.write(f"trnmt_size: {args['trnmt_size']}\n")
+            logfile.write(f"hall_of_fame_size: {args['hall_of_fame_size']}\n")
+            logfile.write(f"genotype_len: {args['genotype_len']}\n")
+            logfile.write(f"episodes: {args['episodes']}\n")
+            logfile.write(f"learning_rate: {args['learning_rate']}\n")
+            logfile.write(f"df: {args['df']}\n")
+            logfile.write(f"eps: {args['eps']}\n")
+            logfile.write(f"\n===============\n")
+            logfile.close()
+            if args["max_generations"]:
+                pop, log, hof, best_leaves = grammatical_evolution(fitness_function=fitness_function,
+                                                                generations=args["max_generations"],
+                                                                timeout=None,
+                                                                cx_prob=args["crossover_pb"],
+                                                                m_prob=args["mutation_pb"],
+                                                                tournament_size=args["trnmt_size"],
+                                                                population_size=args["population_size"],
+                                                                hall_of_fame_size=args["hall_of_fame_size"],
+                                                                rng=rng,
+                                                                initial_len=args["genotype_len"],
+                                                                max_makespan=args["max_makespan"])
+            if args["timeout"]:
+                pop, log, hof, best_leaves = grammatical_evolution(fitness_function=fitness_function,
+                                                                generations=None,
+                                                                timeout=args["timeout"],
+                                                                cx_prob=args["crossover_pb"],
+                                                                m_prob=args["mutation_pb"],
+                                                                tournament_size=args["trnmt_size"],
+                                                                population_size=args["population_size"],
+                                                                hall_of_fame_size=args["hall_of_fame_size"],
+                                                                rng=rng,
+                                                                initial_len=args["genotype_len"],
+                                                                max_makespan=args["max_makespan"])
+            
+            # retrive best individual
+            phenotype, _ = GrammaticalEvolutionTranslator(grammar).genotype_to_str(hof[0])
+            phenotype = phenotype.replace('leaf="_leaf"', '')
+            # iterate over all possible leaves
+            for k in range(50000):
+                key = "leaf_{}".format(k)
+                if key in best_leaves:
+                    v = best_leaves[key].q
+                    phenotype = phenotype.replace("out=_leaf", "out={}".format(np.argmax(v)), 1)
+                else:
+                    break
+            print("Best individual GE is %s, %s" % (hof[0], args["max_makespan"]-hof[0].fitness.values[0]))
+            print(f"Phenotype: {phenotype}")
 
-        # plot fitness trends
-        plt_generation = log.chapters["makespan"].select("gen")
-        plt_fit_min = log.chapters["makespan"].select("min")
-        plt_fit_max = log.chapters["makespan"].select("max")
-        plt_fit_avg = log.chapters["makespan"].select("avg")
-        plt.figure(figsize=(10, 6))
-        plt.plot(plt_generation, plt_fit_avg, marker='o', linestyle='-', linewidth=1, markersize=4, label='Average Fitness')
-        plt.plot(plt_generation, plt_fit_max, marker='o', linestyle='-', linewidth=1, markersize=4, label='Best Fitness')
-        plt.plot(plt_generation, plt_fit_min, marker='o', linestyle='-', linewidth=1, markersize=4, label='Worst Fitness')
-        plt.xlabel('Generation')
-        plt.ylabel('Makespan')
-        plt.title('Fitness Trend')
-        plt.legend()
-        plt.grid(True)
-        plt.show()
+            # write best individual on file
+            logfile = open(f"{output_folder_run_path}/log_ge.txt", "a")
+            logfile.write(str(log) + "\n")
+            logfile.write(str(hof[0]) + "\n")
+            logfile.write(phenotype + "\n")
+            logfile.write("best_fitness: {}".format(hof[0].fitness.values[0]))
+            logfile.close()
 
-        # best individual
-        print("Best individual GE is %s, %s" % (hof[0], args["max_makespan"]-hof[0].fitness.values[0]))
+            # plot fitness trends
+            plt_generation = log.chapters["makespan"].select("gen")
+            plt_fit_min = log.chapters["makespan"].select("min")
+            plt_fit_max = log.chapters["makespan"].select("max")
+            plt_fit_avg = log.chapters["makespan"].select("avg")
+            #plt.figure(figsize=(10, 6))
+            #plt.plot(plt_generation, plt_fit_avg, marker='o', linestyle='-', linewidth=1, markersize=4, label='Average Fitness')
+            #plt.plot(plt_generation, plt_fit_max, marker='o', linestyle='-', linewidth=1, markersize=4, label='Best Fitness')
+            #plt.plot(plt_generation, plt_fit_min, marker='o', linestyle='-', linewidth=1, markersize=4, label='Worst Fitness')
+            #plt.xlabel('Generation')
+            #plt.ylabel('Makespan')
+            #plt.title('Fitness Trend')
+            #plt.legend()
+            #plt.grid(True)
+            #plt.show()
 
-        # store result csv
-        df = pd.DataFrame()
-        df["generation"] = plt_generation
-        df["average_fitness"] = plt_fit_avg
-        df["best_fitness"] = plt_fit_max
-        df["worst_fitness"] = plt_fit_min
-        df.to_csv(f"{args['out_dir']}/history_ge.csv", sep=",", index=False)
+            # best individual
+            print("Best individual GE is %s, %s" % (hof[0], args["max_makespan"]-hof[0].fitness.values[0]))
+
+            # store result csv
+            df = pd.DataFrame()
+            df["generation"] = plt_generation
+            df["average_fitness"] = plt_fit_avg
+            df["best_fitness"] = plt_fit_max
+            df["worst_fitness"] = plt_fit_min
+            df.to_csv(f"{output_folder_run_path}/history_ge.csv", sep=",", index=False)
+
+            env.reset()
