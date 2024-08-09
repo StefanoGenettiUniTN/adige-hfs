@@ -280,7 +280,7 @@ class AdigeEnv(gym.Env):
                 self.adige_setup.setPriority(job_id, len(x)-job_position)
             
             # pass input setup and run model until end
-            self. adige_model.setup_and_run(self.adige_setup)
+            self.adige_model.setup_and_run(self.adige_setup)
             
             # extract model output or simulation result
             model_output = self.adige_model.get_model_output()
