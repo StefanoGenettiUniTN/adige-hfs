@@ -31,9 +31,9 @@ class AdigeEnv(gym.Env):
                  totalAvailableE: int,
                  totalAvailableR: int,
                  dataset_file_path: str,
-                 max_makespan: int):
+                 max_makespan: int,
+                 seed: int):
         # machine type encoding
-        '''
         self.machine_type_encoding: Dict[str, int] = {  # TO BE UPDATED WHEN THE NUMBER OF MACHINE CATEGORIES CHANGE
             "lt7": 0,
             "lt7_p": 1,
@@ -49,6 +49,13 @@ class AdigeEnv(gym.Env):
             "lt8_p_12_ula": 11,
         }
         '''
+        self.machine_type_encoding: Dict[str, int] = {  # TO BE UPDATED WHEN THE NUMBER OF MACHINE CATEGORIES CHANGE
+            "lt7": 0,
+            "lt7_p": 1,
+            "lt7_ins": 2,
+            "lt7_p_ins": 3
+        }
+        '''
         '''
         self.machine_type_encoding: Dict[str, int] = {  # TO BE UPDATED WHEN THE NUMBER OF MACHINE CATEGORIES CHANGE
             "lt8": 0,
@@ -61,13 +68,12 @@ class AdigeEnv(gym.Env):
             "lt8_p_12_ula": 7,
         }
         '''
-        
+        '''
         self.machine_type_encoding: Dict[str, int] = {  # TO BE UPDATED WHEN THE NUMBER OF MACHINE CATEGORIES CHANGE
             "lt7": 0,
             "lt8": 1
         }
-        
-
+        '''
         # observation space
         # 1-D vector [machine_type, date_basement_arrival, date_electrical_panel_arrival, date_delivery, remaining_orders]
         low_bounds = np.array([0, 0, 0, 0, 0])
@@ -75,7 +81,7 @@ class AdigeEnv(gym.Env):
         self.observation_space = spaces.Box(low=low_bounds, high=high_bounds, dtype=np.int64)
 
         # action space
-        self.action_space = spaces.Discrete(num_jobs)
+        self.action_space = spaces.Discrete(n=num_jobs, seed=seed)
 
         # anylogic
         self.adige_model = AnyLogicModel(
@@ -136,8 +142,8 @@ class AdigeEnv(gym.Env):
             sorted_job_ids = [job for job, _ in sorted_jobs_with_priorities]
 
             # run anylogic simulation to compute the reward
-            reward = self.max_makespan-self.simulation(sorted_job_ids)
-            #reward = sum(self.design_variable)
+            makespan = self.simulation(sorted_job_ids)
+            reward = self.max_makespan-makespan
 
         # update observation space
         self.current_job_index += 1
@@ -199,6 +205,7 @@ def read_arguments():
     parser.add_argument("--random_seed", type=int, default=42, help="Seed to initialize the pseudo-random number generation.")
     parser.add_argument("--out_dir", type=str, help="Output folder.")
     parser.add_argument('--no_runs', type=int, default=1, help='Number of runs.')
+    parser.add_argument('--no_evaluations', type=int, default=5000, help='Number of evalutations.')
 
     parser.add_argument("--m", type=int, default=1, help="Resources of type M.")
     parser.add_argument("--e", type=int, default=1, help="Resources of type E.")
@@ -218,24 +225,27 @@ if __name__ == '__main__':
     random.seed(args["random_seed"])
     np.random.seed(args["random_seed"])
 
-    # history of evaluations
-    history_x:List[List[int]] = []
-    history_y:List[int] = []
-
     if args["input_csv"]:
+        # history of evaluations
+        history_x:List[List[int]] = []
+        history_y:List[int] = []
+        history_evaluation:List[int] = []
+
         csv_file_path = args["input_csv"]
         csv_file = open(csv_file_path, mode='r', newline='')
         csv_reader = csv.reader(csv_file)
         next(csv_reader)    # skip the header
         for row in csv_reader:
             x = literal_eval(row[0])  # convert the string representation of list back to a list
-            y = int(row[1])           # convert the string representation of integer back to an integer
+            eval = int(row[1])        # convert the string representation of integer back to an integer 
+            y = int(float(row[2]))    # convert the string representation of integer back to an integer
             history_x.append(x)
+            history_evaluation.append(eval)
             history_y.append(y)
 
         # plot fitness trent
         plt.figure(figsize=(10, 6))
-        plt.plot(range(len(history_y)), history_y, marker='o', linestyle='-', color='b')
+        plt.plot(history_evaluation, history_y, marker='o', linestyle='-', color='b')
         plt.xlabel('Evaluation')
         plt.ylabel('Makespan')
         plt.title('Fitness Trend')
@@ -263,37 +273,77 @@ if __name__ == '__main__':
                 totalAvailableE=env_config['totalAvailableE'],
                 totalAvailableR=env_config['totalAvailableR'],
                 dataset_file_path=env_config['dataset_file_path'],
-                max_makespan=env_config['max_makespan']
+                max_makespan=env_config['max_makespan'],
+                seed=env_config['seed']
             )
-        register_env("AdigeEnv-v0", env_creator)
 
-        # checkpoint directory
-        checkpoint_dir = "rl-checkpoint"
+        for r in range(args["no_runs"]):
+            # history of evaluations
+            history_x:List[List[int]] = []
+            history_y:List[int] = []
+            history_evaluation:List[int] = []
 
-        # ray initialization
-        context = ray.init()
-        print(f"DASHBOARD: {context}")
-        config = {
-            "env": "AdigeEnv-v0",
-            "env_config": {
-                "max_date_basement_arrival": input_df["date_basement_arrival"].max(),
-                "max_date_electrical_panel_arrival": input_df["date_electrical_panel_arrival"].max(),
-                "max_delivery_date": input_df["date_delivery"].max(),
-                "num_jobs": input_df.shape[0],
-                "totalAvailableM": args["m"],
-                "totalAvailableE": args["e"],
-                "totalAvailableR": args["r"],
-                "dataset_file_path": args["dataset"],
-                "max_makespan": args["max_makespan"]
-            },
-            "framework": "torch",
-            "num_workers": 1,
-            "num_envs_per_worker": 1
-        }
-        algo = ppo.PPO(config=config)
-        for i in range(500):
-            result = algo.train()
-            history_x.append([1,1,1,1,1])
-            history_y.append(args["max_makespan"]-result['env_runners']['episode_reward_max'])
-            print(f"Iteration {i}:\nreward_min = {args['max_makespan']-result['env_runners']['episode_reward_min']}\nreward_mean = {args['max_makespan']-result['env_runners']['episode_reward_mean']}\nreward_max = {args['max_makespan']-result['env_runners']['episode_reward_max']}")
-        ray.shutdown()
+            # create directory for saving results of the run
+            output_folder_run_path = output_folder_path+"/"+str(r+1)
+            os.makedirs(output_folder_run_path)
+
+            # write a txt log file with algorithm configuration and other execution details
+            log_file = open(f"{output_folder_run_path}/log.txt", 'w')
+            log_file.write(f"algorithm: reinforcement learning\n")
+            log_file.write(f"current date and time: {datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}\n")
+            log_file.write(f"no_evaluations: {args['no_evaluations']}\n")
+            log_file.write(f"no_runs: {args['no_runs']}\n")
+            log_file.write(f"m: {args['m']}\n")
+            log_file.write(f"e: {args['e']}\n")
+            log_file.write(f"r: {args['r']}\n")
+            log_file.write(f"\n===============\n")
+            log_file.close()
+
+            # environment registration 
+            register_env("AdigeEnv-v0", env_creator)
+
+            # ray initialization
+            context = ray.init()
+            print(f"DASHBOARD: {context}")
+            config = {
+                "env": "AdigeEnv-v0",
+                "env_config": {
+                    "max_date_basement_arrival": input_df["date_basement_arrival"].max(),
+                    "max_date_electrical_panel_arrival": input_df["date_electrical_panel_arrival"].max(),
+                    "max_delivery_date": input_df["date_delivery"].max(),
+                    "num_jobs": input_df.shape[0],
+                    "totalAvailableM": args["m"],
+                    "totalAvailableE": args["e"],
+                    "totalAvailableR": args["r"],
+                    "dataset_file_path": args["dataset"],
+                    "max_makespan": args["max_makespan"],
+                    "seed": args["random_seed"]
+                },
+                "framework": "torch",
+                "num_workers": 1,
+                "num_envs_per_worker": 1
+            }
+
+            algo = ppo.PPO(config=config)
+            evaluations = 0
+            i=0
+            while evaluations < args["no_evaluations"]:
+                result = algo.train()
+                print(f"Iteration {i}:\nreward_min = {args['max_makespan']-result['env_runners']['episode_reward_min']}\nreward_mean = {args['max_makespan']-result['env_runners']['episode_reward_mean']}\nreward_max = {args['max_makespan']-result['env_runners']['episode_reward_max']}")
+                evaluations += result['env_runners']["num_episodes"]
+                i+=1
+                history_x.append([1,1,1,1,1])
+                history_evaluation.append(evaluations)
+                history_y.append(args["max_makespan"]-result['env_runners']['episode_reward_max'])
+            
+            # store fitness trend history in csv output file
+            csv_file_path = f"{output_folder_run_path}/history_rl.csv"
+            csv_file = open(csv_file_path, mode='w', newline='')
+            csv_writer = csv.writer(csv_file)
+            csv_writer.writerow(["x", "eval", "y"])
+            for x, eval, y in zip(history_x, history_evaluation, history_y):
+                csv_writer.writerow([str(x), eval, y])
+            csv_file.close()
+            print(f"Data successfully written to history_rl.csv")
+            
+            ray.shutdown()
