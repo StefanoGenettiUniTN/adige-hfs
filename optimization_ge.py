@@ -132,8 +132,10 @@ class AdigeEnv(gym.Env):
                  totalAvailableE: int,
                  totalAvailableR: int,
                  dataset_file_path: str,
-                 max_makespan: int):
+                 max_makespan: int,
+                 priority_levels: int):
         # machine type encoding
+        '''
         self.machine_type_encoding: Dict[str, int] = {  # TO BE UPDATED WHEN THE NUMBER OF MACHINE CATEGORIES CHANGE
             "lt7": 0,
             "lt7_p": 1,
@@ -149,6 +151,7 @@ class AdigeEnv(gym.Env):
             "lt8_p_12_ula": 11,
         }
         '''
+        '''
         self.machine_type_encoding: Dict[str, int] = {  # TO BE UPDATED WHEN THE NUMBER OF MACHINE CATEGORIES CHANGE
             "lt8": 0,
             "lt8_p": 1,
@@ -160,12 +163,10 @@ class AdigeEnv(gym.Env):
             "lt8_p_12_ula": 7,
         }
         '''
-        '''
         self.machine_type_encoding: Dict[str, int] = {  # TO BE UPDATED WHEN THE NUMBER OF MACHINE CATEGORIES CHANGE
             "lt7": 0,
             "lt8": 1
         }
-        '''
 
         # observation space
         # 1-D vector [machine_type, date_basement_arrival, date_electrical_panel_arrival, date_delivery, remaining_orders]
@@ -174,7 +175,8 @@ class AdigeEnv(gym.Env):
         self.observation_space = spaces.Box(low=low_bounds, high=high_bounds, dtype=np.int64)
 
         # action space
-        self.action_space = spaces.Discrete(num_jobs)
+        #self.action_space = spaces.Discrete(num_jobs)
+        self.action_space = spaces.Discrete(priority_levels)
 
         # anylogic
         self.adige_model = AnyLogicModel(
@@ -187,6 +189,7 @@ class AdigeEnv(gym.Env):
         self.design_variable = []
         self.current_job_index = 0
         self.total_num_jobs = num_jobs
+        self.priority_levels = priority_levels
         self.totalAvailableM = totalAvailableM
         self.totalAvailableE = totalAvailableE
         self.totalAvailableR = totalAvailableR
@@ -221,7 +224,14 @@ class AdigeEnv(gym.Env):
 
     def step(self, action):
         # action is an integer number representing the priority assigned to the given job
-        self.design_variable.append(action)
+        #self.design_variable.append(action)
+        # generate a random number withing a proper range according to the priority level
+        range_size = self.total_num_jobs // self.priority_levels
+        remainder = self.total_num_jobs % self.priority_levels
+        start = action * range_size + min(action, remainder)
+        end = start + range_size + (1 if action < remainder else 0)
+        self.design_variable.append(random.randint(start, end-1))
+        #print(f"action: {action} - interval: [{start},{end}] - generated number: {self.design_variable[-1]}")
 
         # an episode is terminated if the agent has taken a decision for each order
         terminated = len(self.design_variable)==self.total_num_jobs
@@ -744,6 +754,7 @@ def read_arguments():
     parser.add_argument("--e", type=int, default=1, help="Resources of type E.")
     parser.add_argument("--r", type=int, default=1, help="Resources of type R.")
     parser.add_argument("--num_machine_types", type=int, help="Number of machine types")
+    parser.add_argument("--priority_levels", type=int, help="Number of priority levels")
     parser.add_argument("--max_makespan", type=int, help="Max makespan. Used to avoid handling negative rewards.")
     parser.add_argument("--dataset", type=str, default="data/d.csv", help="File path with the dataset.")
 
@@ -804,7 +815,8 @@ if __name__ == '__main__':
                         totalAvailableE: int,
                         totalAvailableR: int,
                         dataset_file_path: str,
-                        max_makespan: int):
+                        max_makespan: int,
+                        priority_levels: int):
             return AdigeEnv(max_date_basement_arrival=max_date_basement_arrival,
                             max_date_electrical_panel_arrival=max_date_electrical_panel_arrival,
                             max_delivery_date=max_delivery_date,
@@ -813,7 +825,8 @@ if __name__ == '__main__':
                             totalAvailableE=totalAvailableE,
                             totalAvailableR=totalAvailableR,
                             dataset_file_path=dataset_file_path,
-                            max_makespan=max_makespan)
+                            max_makespan=max_makespan,
+                            priority_levels=priority_levels)
         
         gym.envs.registration.register(
             id="AdigeEnv-v0",
@@ -826,7 +839,8 @@ if __name__ == '__main__':
                                     totalAvailableE=args["e"],
                                     totalAvailableR=args["r"],
                                     dataset_file_path=args["dataset"],
-                                    max_makespan=args["max_makespan"]),
+                                    max_makespan=args["max_makespan"],
+                                    priority_levels=args["priority_levels"]),
         )
         env = gym.make("AdigeEnv-v0")
 
@@ -855,7 +869,7 @@ if __name__ == '__main__':
         def fitness_function(x):
             return evaluate_fitness(genotype=x,
                                     episodes=args["episodes"],
-                                    n_actions=input_df.shape[0],
+                                    n_actions=args["priority_levels"],
                                     learning_rate=args["learning_rate"],
                                     discount_factor=args["df"],
                                     epsilon=args["eps"],
@@ -878,6 +892,7 @@ if __name__ == '__main__':
             logfile.write(f"r: {args['r']}\n")
             logfile.write(f"num_machine_types: {args['num_machine_types']}\n")
             logfile.write(f"max_makespan: {args['max_makespan']}\n")
+            logfile.write(f"priority_levels: {args['priority_levels']}\n")
             logfile.write(f"dataset: {args['dataset']}\n")
             logfile.write(f"population_size: {args['population_size']}\n")
             logfile.write(f"max_generations: {args['max_generations']}\n")
