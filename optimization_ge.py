@@ -9,6 +9,7 @@ import re
 import datetime
 import os
 import time
+import csv
 from alpypeopt import AnyLogicModel
 from gymnasium import spaces
 from deap import creator
@@ -803,6 +804,13 @@ if __name__ == '__main__':
         output_folder_path = f"{args['out_dir']}/{current_datetime}"
         os.makedirs(output_folder_path)
 
+        # execution time csv file
+        csv_execution_time_file_path = f"{output_folder_path}/exec_ge.csv"
+        csv_execution_time_file = open(csv_execution_time_file_path, mode='w', newline='')
+        csv_execution_time_writer = csv.writer(csv_execution_time_file)
+        csv_execution_time_writer.writerow(["run", "time"])
+        csv_execution_time_file.close()
+
         # read the input dataset
         input_df = pd.read_csv(args["dataset"])
 
@@ -909,6 +917,7 @@ if __name__ == '__main__':
             logfile.write(f"\n===============\n")
             logfile.close()
             if args["max_generations"]:
+                start_time = time.time()
                 pop, log, hof, best_leaves = grammatical_evolution(fitness_function=fitness_function,
                                                                 generations=args["max_generations"],
                                                                 timeout=None,
@@ -920,6 +929,12 @@ if __name__ == '__main__':
                                                                 rng=rng,
                                                                 initial_len=args["genotype_len"],
                                                                 max_makespan=args["max_makespan"])
+                execution_time = time.time()-start_time
+                # store execution time of the run
+                csv_execution_time_file = open(csv_execution_time_file_path, mode='a', newline='')
+                csv_execution_time_writer = csv.writer(csv_execution_time_file)
+                csv_execution_time_writer.writerow([r, execution_time])
+                csv_execution_time_file.close()
             if args["timeout"]:
                 pop, log, hof, best_leaves = grammatical_evolution(fitness_function=fitness_function,
                                                                 generations=None,
@@ -977,6 +992,7 @@ if __name__ == '__main__':
             # store result csv
             df = pd.DataFrame()
             df["generation"] = plt_generation
+            df["eval"] = df["generation"] * (args["episodes"] * args["population_size"])
             df["average_fitness"] = plt_fit_avg
             df["best_fitness"] = plt_fit_max
             df["worst_fitness"] = plt_fit_min
