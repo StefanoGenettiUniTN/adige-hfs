@@ -40,7 +40,7 @@ if __name__ == '__main__':
         csv_file_path = args["input_csv"]
         df = pd.read_csv(csv_file_path)
         plt.figure(figsize=(10, 6))
-        plt.plot(range(len(df["y"])), df["y"], marker='o', linestyle='-', linewidth=1, markersize=4, label='makespan')
+        plt.plot(range(len(df["y"])), df["y"].cummin(), marker='o', linestyle='-', linewidth=1, markersize=4, label='makespan')
         plt.xlabel('Trial')
         plt.ylabel('Revenue')
         plt.title('Fitness Trend')
@@ -105,6 +105,13 @@ if __name__ == '__main__':
             
             return model_output.getMakespan()
 
+        # execution time csv file
+        csv_execution_time_file_path = f"{output_folder_path}/exec_random.csv"
+        csv_execution_time_file = open(csv_execution_time_file_path, mode='w', newline='')
+        csv_execution_time_writer = csv.writer(csv_execution_time_file)
+        csv_execution_time_writer.writerow(["run", "time"])
+        csv_execution_time_file.close()
+
         for r in range(args["no_runs"]):
             # create directory for saving results of the run
             output_folder_run_path = output_folder_path+"/"+str(r+1)
@@ -131,6 +138,7 @@ if __name__ == '__main__':
             if args["n_trials"]:
                 best_y = float("inf")
                 best_x = []
+                start_time = time.time()
                 for _ in range(args["n_trials"]):
                     x = input_jobs.copy()
                     rng.shuffle(x)
@@ -144,7 +152,13 @@ if __name__ == '__main__':
                         best_x = x.copy()
                     history_x.append(x.copy())
                     history_y.append(int(y))
-            
+                execution_time = time.time()-start_time
+                # store execution time of the run
+                csv_execution_time_file = open(csv_execution_time_file_path, mode='a', newline='')
+                csv_execution_time_writer = csv.writer(csv_execution_time_file)
+                csv_execution_time_writer.writerow([r, execution_time])
+                csv_execution_time_file.close()
+
             if args["timeout"]:
                 best_y = float("inf")
                 best_x = []
