@@ -9,6 +9,7 @@ import datetime
 import os
 import ray
 import csv
+import time
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.algorithms import ppo
 from ray.tune.registry import register_env
@@ -235,13 +236,15 @@ if __name__ == '__main__':
         csv_file = open(csv_file_path, mode='r', newline='')
         csv_reader = csv.reader(csv_file)
         next(csv_reader)    # skip the header
+        current_best_y = float('inf')   # track the best y value encountered so far
         for row in csv_reader:
             x = literal_eval(row[0])  # convert the string representation of list back to a list
             eval = int(row[1])        # convert the string representation of integer back to an integer 
             y = int(float(row[2]))    # convert the string representation of integer back to an integer
             history_x.append(x)
             history_evaluation.append(eval)
-            history_y.append(y)
+            current_best_y = min(y, current_best_y)
+            history_y.append(current_best_y)
 
         # plot fitness trent
         plt.figure(figsize=(10, 6))
@@ -258,6 +261,13 @@ if __name__ == '__main__':
         current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         output_folder_path = f"{args['out_dir']}/{current_datetime}"
         os.makedirs(output_folder_path)
+
+        # execution time csv file
+        csv_execution_time_file_path = f"{output_folder_path}/exec_rl.csv"
+        csv_execution_time_file = open(csv_execution_time_file_path, mode='w', newline='')
+        csv_execution_time_writer = csv.writer(csv_execution_time_file)
+        csv_execution_time_writer.writerow(["run", "time"])
+        csv_execution_time_file.close()
 
         # read the input dataset
         input_df = pd.read_csv(args["dataset"])
@@ -327,6 +337,7 @@ if __name__ == '__main__':
             algo = ppo.PPO(config=config)
             evaluations = 0
             i=0
+            start_time = time.time()
             while evaluations < args["no_evaluations"]:
                 result = algo.train()
                 print(f"Iteration {i}:\nreward_min = {args['max_makespan']-result['env_runners']['episode_reward_min']}\nreward_mean = {args['max_makespan']-result['env_runners']['episode_reward_mean']}\nreward_max = {args['max_makespan']-result['env_runners']['episode_reward_max']}")
@@ -335,7 +346,13 @@ if __name__ == '__main__':
                 history_x.append([1,1,1,1,1])
                 history_evaluation.append(evaluations)
                 history_y.append(args["max_makespan"]-result['env_runners']['episode_reward_max'])
-            
+            execution_time = time.time()-start_time
+            # store execution time of the run
+            csv_execution_time_file = open(csv_execution_time_file_path, mode='a', newline='')
+            csv_execution_time_writer = csv.writer(csv_execution_time_file)
+            csv_execution_time_writer.writerow([r, execution_time])
+            csv_execution_time_file.close()
+
             # store fitness trend history in csv output file
             csv_file_path = f"{output_folder_run_path}/history_rl.csv"
             csv_file = open(csv_file_path, mode='w', newline='')
