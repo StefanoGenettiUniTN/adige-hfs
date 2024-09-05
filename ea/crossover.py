@@ -19,9 +19,9 @@ def ea_crossover(random, candidate1, candidate2, args):
     new_candidate2 = [-1] * size
 
     # choose two crossover points
-    #cxpoint1, cxpoint2 = sorted(random.sample(range(size), 2))
-    cxpoint1 = 5
-    cxpoint2 = 10
+    cxpoint1, cxpoint2 = sorted(random.sample(range(size), 2))
+    #cxpoint1 = 5
+    #cxpoint2 = 10
     ####print(f"cxpoint1={cxpoint1}")
     ####print(f"cxpoint2={cxpoint2}")
 

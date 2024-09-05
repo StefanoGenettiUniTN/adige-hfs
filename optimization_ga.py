@@ -8,6 +8,7 @@ import pandas as pd
 import random
 import inspyred
 import time
+import csv
 from ea.observer import ea_observer
 from ea.generator import ea_generator
 from ea.evaluator import ea_evaluator
@@ -70,6 +71,13 @@ if __name__ == '__main__':
         current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_folder_path = f"{args['out_dir']}/{current_datetime}"
         os.makedirs(output_folder_path)
+
+        # execution time csv file
+        csv_execution_time_file_path = f"{output_folder_path}/exec_ga.csv"
+        csv_execution_time_file = open(csv_execution_time_file_path, mode='w', newline='')
+        csv_execution_time_writer = csv.writer(csv_execution_time_file)
+        csv_execution_time_writer.writerow(["run", "time"])
+        csv_execution_time_file.close()
 
         adige_model = AnyLogicModel(
             env_config={
@@ -153,12 +161,14 @@ if __name__ == '__main__':
             ea.observer = [ea_observer]
             ea.terminator = ea_terminator_generation if args["max_generations"] else ea_terminator_timeout
             ea.variator = [ea_crossover, ea_mutation]
-            plot_data = [[], [], [], [], []]                                            # fitness trend to plot
+            plot_data = [[], [], [], [], [], []]                                        # fitness trend to plot
             plot_data[0] = []                                                           # generation number
-            plot_data[1] = []                                                           # average fitenss
-            plot_data[2] = []                                                           # median fitness
-            plot_data[3] = []                                                           # best fitness
-            plot_data[4] = []                                                           # worst fitness
+            plot_data[1] = []                                                           # evaluation number
+            plot_data[2] = []                                                           # average fitenss
+            plot_data[3] = []                                                           # median fitness
+            plot_data[4] = []                                                           # best fitness
+            plot_data[5] = []                                                           # worst fitness
+            start_time = time.time()
             final_pop = ea.evolve(  generator=ea_generator,                             # the function to be used to generate candidate solutions
                                     evaluator=ea_evaluator,                             # the function to be used to evaluate candidate solutions
                                     pop_size=args["population_size"],                   # the number of Individuals in the population 
@@ -182,5 +192,11 @@ if __name__ == '__main__':
                                     plot_data = plot_data,                              # data[0] generation number ; data[1] average fitenss ; data[2] median fitness ; data[3] best fitness ; data[4] worst fitness
                                     output_directory = output_folder_run_path           # directory folder where to store the final results
                                     )
+            execution_time = time.time()-start_time
+            # store execution time of the run
+            csv_execution_time_file = open(csv_execution_time_file_path, mode='a', newline='')
+            csv_execution_time_writer = csv.writer(csv_execution_time_file)
+            csv_execution_time_writer.writerow([r, execution_time])
+            csv_execution_time_file.close()
         # close model
         adige_model.close()
