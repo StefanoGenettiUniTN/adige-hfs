@@ -9,6 +9,7 @@ import random
 import inspyred
 import statistics
 import time
+import csv
 
 class AdigeACS(inspyred.swarm.ACS):
     """Represents an Ant Colony System discrete optimization algorithm.
@@ -136,10 +137,11 @@ class ACO_adige(inspyred.benchmarks.Benchmark):
             data = args["plot_data"]
             df = pd.DataFrame()
             df["generation"] = data[0]
-            df["average_fitness"] = data[1]
-            df["median_fitness"] = data[2]
-            df["best_fitness"] = data[3]
-            df["worst_fitness"] = data[4]
+            df["eval"] = data[1]
+            df["average_fitness"] = data[2]
+            df["median_fitness"] = data[3]
+            df["best_fitness"] = data[4]
+            df["worst_fitness"] = data[5]
             df.to_csv(f"{out_directory}/history_aco.csv", sep=",", index=False)
             print(f"Data successfully written to history_aco.csv")
         return num_generations == args["max_generations"]
@@ -154,15 +156,17 @@ class ACO_adige(inspyred.benchmarks.Benchmark):
         # store data of the plot fitness trend
         data = args["plot_data"]
         d0 = num_generations
-        d1 = statistics.mean(args["history_y"])
-        d2 = statistics.median(args["history_y"])
-        d3 = max(args["history_y"])
-        d4 = min(args["history_y"])
+        d1 = num_evaluations
+        d2 = statistics.mean(args["history_y"])
+        d3 = statistics.median(args["history_y"])
+        d4 = max(args["history_y"])
+        d5 = min(args["history_y"])
         data[0].append(d0)
         data[1].append(d1)
         data[2].append(d2)
         data[3].append(d3)
         data[4].append(d4)
+        data[5].append(d5)
 
         # reset history_y for the next generation
         args["history_y"] = [] 
@@ -217,6 +221,13 @@ if __name__ == '__main__':
         current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_folder_path = f"{args['out_dir']}/{current_datetime}"
         os.makedirs(output_folder_path)
+
+        # execution time csv file
+        csv_execution_time_file_path = f"{output_folder_path}/exec_aco.csv"
+        csv_execution_time_file = open(csv_execution_time_file_path, mode='w', newline='')
+        csv_execution_time_writer = csv.writer(csv_execution_time_file)
+        csv_execution_time_writer.writerow(["run", "time"])
+        csv_execution_time_file.close()
 
         # read dataset jobs
         input_jobs: List[Job] = []
@@ -307,12 +318,13 @@ if __name__ == '__main__':
             ac = AdigeACS(random=rng, components=adige_problem.components)
             ac.observer = [adige_problem.observer]
             ac.terminator = [adige_problem.terminator]
-            plot_data = [[], [], [], [], []]                                    # fitness trend to plot
+            plot_data = [[], [], [], [], [], []]                                # fitness trend to plot
             plot_data[0] = []                                                   # generation number
-            plot_data[1] = []                                                   # average fitenss
-            plot_data[2] = []                                                   # median fitness
-            plot_data[3] = []                                                   # best fitness
-            plot_data[4] = []                                                   # worst fitness
+            plot_data[1] = []                                                   # evaluation number
+            plot_data[2] = []                                                   # average fitenss
+            plot_data[3] = []                                                   # median fitness
+            plot_data[4] = []                                                   # best fitness
+            plot_data[5] = []                                                   # worst fitness
             final_pop = ac.evolve(  generator=adige_problem.constructor,        # the function to be used to generate candidate solutions
                                     evaluator=adige_problem.evaluator,          # the function to be used to evaluate candidate solutions
                                     pop_size=args["population_size"],           # the number of individuals in the population 
@@ -324,8 +336,14 @@ if __name__ == '__main__':
                                     plot_data = plot_data,                      # data[0] generation number ; data[1] average fitenss ; data[2] median fitness ; data[3] best fitness ; data[4] worst fitness
                                     output_directory = output_folder_run_path   # output directory
                                 )
+            execution_time = time.time()-start_time
+            # store execution time of the run
+            csv_execution_time_file = open(csv_execution_time_file_path, mode='a', newline='')
+            csv_execution_time_writer = csv.writer(csv_execution_time_file)
+            csv_execution_time_writer.writerow([r, execution_time])
+            csv_execution_time_file.close()
             log_file = open(f"{output_folder_run_path}/log.txt", 'a')
-            log_file.write(f"total time: {time.time()-start_time}\n")
+            log_file.write(f"total time: {execution_time}\n")
             log_file.close()
             print(f"total time: {time.time()-start_time}")
             
